@@ -218,15 +218,15 @@ struct combination : public std::tuple<Elements...>, public virtual combination_
 
 template <typename Element>
 combination<single, Element>
-make_single(Element& e) { return { std::move(e) }; }
+make_single(const Element& e) { return { e }; }
 
 template <typename Element>
 combination<multiple, Element>
-make_multiple(Element& e) { return { std::move(e) }; }
+make_multiple(const Element& e) { return { e }; }
 
 template <typename kls, typename Element>
 combination<optional<kls>, Element>
-make_optional(combination<kls, Element>& e) { return { std::move(e) }; }
+make_optional(const combination<kls, Element>& e) { return { e }; }
 
 template <typename Element>
 combination<single, Element>
