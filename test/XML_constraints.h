@@ -32,21 +32,21 @@ struct element_target_descr : public target_descr<Struc, FieldType> {
 
 
 template <typename Struc, typename FieldType>
-combination<single, attribute_target_descr<Struc, FieldType>> &&
+combination<single, attribute_target_descr<Struc, FieldType>>
 A(const char* name, FieldType Struc::* field)
 {
     return make_single(attribute_target_descr<Struc, FieldType>(name, field));
 }
 
 template <typename Struc, typename FieldType>
-combination<single, element_target_descr<Struc, FieldType>> &&
+combination<single, element_target_descr<Struc, FieldType>>
 E(const char* name, FieldType Struc::* field)
 {
     return make_single(element_target_descr<Struc, FieldType>(name, field));
 }
 
 template <typename Struc, typename FieldType>
-combination<multiple, element_target_descr<Struc, std::vector<FieldType>>> &&
+combination<multiple, element_target_descr<Struc, std::vector<FieldType>>>
 E(const char* name, std::vector<FieldType> Struc::* field)
 {
     return make_multiple(element_target_descr<Struc, std::vector<FieldType>>(name, field));
