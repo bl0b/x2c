@@ -57,6 +57,7 @@ template <int I, typename IndexTuple, typename... Types>
 template <int I, int... Indexes>
     struct make_indexes_impl<I, index_tuple<Indexes...>> {
         typedef index_tuple<Indexes...> type;
+        /*enum { I=I };*/
     };
 
 template <int I, int... Indexes, typename T, typename... Types>

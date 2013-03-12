@@ -1,6 +1,6 @@
 #include "structure.h"
 
-#include "XML_constraints.h"
+#include "XML.h"
 
 /*#include <tuple>*/
 #include <iostream>
@@ -185,16 +185,10 @@ std::ostream& operator << (std::ostream& o, element_target_descr<S, F>& a)
 }
 
 
-
-
-struct Test { int a; std::vector<double> b; };
-
 int main(int argc, char** argv)
 {
     (void)argc;
     (void)argv;
-
-    std::cout << "is_base_of<empty, ctest> => " << std::is_base_of<empty, ctest>::value << std::endl;
 
     auto a = make_single(1);
     auto b = make_single(42.23);
@@ -229,9 +223,6 @@ int main(int argc, char** argv)
     std::cout << "=========================================================" << std::endl;
     { DEBUG; test_operators(c); }
     std::cout << "=========================================================" << std::endl;
-    { DEBUG; test_operators(A("toto", &Test::a) & E("pouet", &Test::b)); }
-    std::cout << "=========================================================" << std::endl;
-
 
     return 0;
 }

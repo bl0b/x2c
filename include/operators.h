@@ -65,7 +65,7 @@ constexpr combination<SPECIAL_CLASS, E1..., combination<K2, E2...>>
 operator OPERATOR_DEFINITION (combination<SPECIAL_CLASS, E1...> && a, combination<K2, E2...> && b)
 {
     DEBUG;
-    return a.combine(b);
+    return a.combine(std::move(b));
 }
 
 
