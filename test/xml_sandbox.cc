@@ -64,6 +64,7 @@ struct Foo {
     double b;
 };
 
+
 struct Manip {
     double factor;
     Manip() : factor(1.) {}
@@ -72,6 +73,7 @@ struct Manip {
         f.b *= factor;
     }
 };
+
 
 #if 1
 struct dtd {
@@ -88,14 +90,21 @@ struct dtd {
         , op("op")
         , foo("foo")
     {
+        DEBUG;
         a = chardata();
+        debug_log << debug_endl << __FILE__ << ':' << __LINE__ << debug_endl;
         b = A("value");
+        debug_log << debug_endl << __FILE__ << ':' << __LINE__ << debug_endl;
         factor = chardata();
+        debug_log << debug_endl << __FILE__ << ':' << __LINE__ << debug_endl;
         op = E(factor, &Manip::factor);
+        debug_log << debug_endl << __FILE__ << ':' << __LINE__ << debug_endl;
         foo = E(a, &Foo::a) & E(b, &Foo::b) & make_optional(E(op));
+        debug_log << debug_endl << __FILE__ << ':' << __LINE__ << debug_endl;
     }
 };
 #endif
+
 
 const char* XML1 = "<foo><a>1234</a><b value=\"43.21\"></foo>";
 const char* XML2 = "<foo><a>1234</a><b value=\"43.21\"><op><factor>100</factor></op></foo>";
@@ -116,8 +125,11 @@ int main(int argc, char** argv)
 {
 #if 1
     dtd d;
+    debug_log << __FILE__ << ':' << __LINE__ << debug_endl;
     auto iop = d.op.iterator();
+    debug_log << __FILE__ << ':' << __LINE__ << debug_endl;
     auto ifoo = d.foo.iterator();
+    debug_log << __FILE__ << ':' << __LINE__ << debug_endl;
     std::cout << "iop " << (*iop) << std::endl;
     feed("iop", "factor", *iop);
     feed("iop", "factor", *iop);

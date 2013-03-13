@@ -12,7 +12,6 @@ struct Entity {
 
     std::string name;
     Entity(const std::string& n) : name(n) {}
-    Entity(std::string && n) : name(n) {}
 };
 
 

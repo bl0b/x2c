@@ -74,21 +74,22 @@ struct map_tuple {
     template <typename IndexTuple> struct helper;
     template <int... Indexes>
         struct helper<index_tuple<Indexes...>> {
-            static ReturnType && transform(const std::tuple<Types...> & src)
+            static ReturnType transform(const std::tuple<Types...> & src)
             {
                 DEBUG;
-                /*return std::move(ReturnType(Factory::transform(std::get<Indexes>(src))...));*/
-                return ReturnType(Factory::transform(std::get<Indexes>(src))...);
+                /*return { Factory::transform(std::get<Indexes>(src))... };*/
+                return std::move(ReturnType(Factory::transform(std::get<Indexes>(src))...));
             }
         };
 
 
     static ReturnType transform(const std::tuple<Types...> & src)
     {
+
         DEBUG;
-        /*return std::move(helper<typename make_indexes<Types...>::type>*/
-        return helper<typename make_indexes<Types...>::type>
-                ::transform(src);
+        return std::move(helper<typename make_indexes<Types...>::type>
+        /*return helper<typename make_indexes<Types...>::type>*/
+                ::transform(src));
     }
 };
 

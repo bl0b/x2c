@@ -1,6 +1,5 @@
 #include "structure.h"
 
-#include "XML.h"
 
 /*#include <tuple>*/
 #include <iostream>
@@ -142,7 +141,6 @@ struct id {
         pouet(int) {}
         pouet(double) {}
         pouet(const std::string&) {}
-        template <typename S, typename F> pouet(target_descr<S, F>& x) {}
     };
     template <typename X> static pouet && transform(X x) { return std::move(pouet(x)); }
 };
@@ -156,32 +154,6 @@ void test_operators(const EXPR& e)
     std::cout << "---------------------------------------------------------" << std::endl;
     auto a = transformer<id>::transform(e);
     std::cout << a << std::endl << std::endl;
-}
-
-template <typename S, typename F>
-std::ostream& operator << (std::ostream& o, attribute_target_descr<S, F>& a)
-{
-    o << "attribute\"";
-    o << a.name;
-    o << "\"->";
-    o << typeid(F).name();
-    o << '(';
-    o << a.field;
-    o << ')';
-    return o;
-}
-
-template <typename S, typename F>
-std::ostream& operator << (std::ostream& o, element_target_descr<S, F>& a)
-{
-    o << "element\"";
-    o << a.name;
-    o << "\"->";
-    o << typeid(F).name();
-    o << '(';
-    o << a.field;
-    o << ')';
-    return o;
 }
 
 

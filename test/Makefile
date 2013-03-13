@@ -1,4 +1,4 @@
-CXX=g++-4.7.0
+CXX=g++-4.8
 CXXARGS=--std=gnu++0x -Wall
 
 INC=-I../include
@@ -14,7 +14,7 @@ include .depend
 
 .depend: sandbox.cc xml_sandbox.cc
 	$C --depend sandbox.cc | sed 's/^sandbox\.o:/$(TARGETS):/' > $@
-	$C --depend xml_sandbox.cc | sed 's/^xml_sandbox\.o:/xml_sandbox:/' > $@
+	$C --depend xml_sandbox.cc | sed 's/^xml_sandbox\.o:/xml_sandbox:/' >> $@
 
 sandbox: sandbox.cc 
 	$C $< -o $@ -ggdb
@@ -32,4 +32,4 @@ sandbox-opt-prof: sandbox.cc
 	$C $< -o $@ -pg -O3 -DNDEBUG
 
 clean:
-	rm -f sandbox-* sandbox .depend
+	rm -f sandbox-* sandbox .depend xml_sandbox

@@ -10,13 +10,21 @@ struct data_binder<FieldType StrucType::*, Element<StrucType>> {
     FieldType StrucType::* target;
     const entity_type* elt;
 
+    data_binder(const std::string& n, FieldType StrucType::* t, const entity_type* e)
+        : name(n), target(t), elt(e)
+    { DEBUG; }
+
+    data_binder(const data_binder<FieldType StrucType::*, Element<StrucType>>& d)
+        : name(d.name), target(d.target), elt(d.elt)
+    { DEBUG; }
+
     FieldType* install(StrucType* container) const
     {
         return &container->*target;
     }
 
     void after(StrucType* ptr, FieldType data) const
-    {}
+    { DEBUG; }
 };
 
 
@@ -29,6 +37,14 @@ struct data_binder<FieldType* StrucType::*, Element<StrucType>> {
     FieldType* StrucType::* target;
     const entity_type* elt;
 
+    data_binder(const std::string& n, FieldType* StrucType::* t, const entity_type* e)
+        : name(n), target(t), elt(e)
+    { DEBUG; }
+
+    data_binder(const data_binder<FieldType* StrucType::*, Element<StrucType>>& d)
+        : name(d.name), target(d.target), elt(d.elt)
+    { DEBUG; }
+
     FieldType* install(StrucType* container) const
     {
         container->*target = new FieldType();
@@ -36,7 +52,7 @@ struct data_binder<FieldType* StrucType::*, Element<StrucType>> {
     }
 
     void after(StrucType* container, FieldType data) const
-    {}
+    { DEBUG; }
 };
 
 
@@ -47,6 +63,14 @@ struct data_binder<Manipulator, Element<EvalType>> {
 
     std::string name;
     const entity_type* elt;
+
+    data_binder(const std::string& n, const entity_type* e)
+        : name(n), elt(e)
+    { DEBUG; }
+
+    data_binder(const data_binder<Manipulator, Element<EvalType>>& d)
+        : name(d.name), elt(d.elt)
+    { DEBUG; }
 
     Manipulator* install(EvalType* container)
     {
@@ -69,13 +93,21 @@ struct data_binder<EvalType, Element<EvalType>> {
     std::string name;
     const entity_type* elt;
 
+    data_binder(const std::string& n, const entity_type* e)
+        : name(n), elt(e)
+    { DEBUG; }
+
+    data_binder(const data_binder<EvalType, Element<EvalType>>& d)
+        : name(d.name), elt(d.elt)
+    { DEBUG; }
+
     EvalType* install(EvalType* container)
     {
         return container;
     }
 
     void after(EvalType* container, EvalType* data)
-    {}
+    { DEBUG; }
 };
 
 
@@ -84,6 +116,14 @@ template <typename EvalType>
 struct data_binder<EvalType, std::string> {
     std::string name;
     typedef std::string entity_type;
+
+    data_binder(const std::string& n)
+        : name(n)
+    { DEBUG; }
+
+    data_binder(const data_binder<EvalType, std::string>& d)
+        : name(d.name)
+    { DEBUG; }
 
     EvalType* install(EvalType* container)
     {
@@ -103,6 +143,14 @@ struct data_binder<FieldType StrucType::*, std::string> {
     std::string name;
     FieldType StrucType::* field;
     typedef std::string entity_type;
+
+    data_binder(const std::string& n, FieldType StrucType::* f)
+        : name(n), field(f)
+    { DEBUG; }
+
+    data_binder(const data_binder<FieldType StrucType::*, std::string>& d)
+        : name(d.name), field(d.field)
+    { DEBUG; }
 
     FieldType* install(StrucType* container)
     {
@@ -168,6 +216,7 @@ struct resolve_bindings_integral {
         data_binder<ManipulatorOrTransient, Element<IntegralType>>
         transform(const Element<ManipulatorOrTransient>* e)
         {
+            DEBUG;
             return { e->name, e };
         }
 
@@ -176,6 +225,7 @@ struct resolve_bindings_integral {
     data_binder<IntegralType, std::string>
     transform(const attr_eval & ae)
     {
+        DEBUG;
         return { ae.name };
     }
 
@@ -184,6 +234,7 @@ struct resolve_bindings_integral {
     data_binder<IntegralType, std::string>
     transform(const CharData &)
     {
+        DEBUG;
         return { CHARDATA_NAME };
     }
 };
@@ -197,6 +248,7 @@ struct resolve_bindings_class {
         data_binder<ManipulatorOrTransient, Element<StrucType>>
         transform(const Element<ManipulatorOrTransient>* e)
         {
+            DEBUG;
             return { e->name, e };
         }
 
@@ -205,6 +257,7 @@ struct resolve_bindings_class {
     data_binder<StrucType, std::string>
     transform(const attr_eval & ae)
     {
+        DEBUG;
         return { ae.name };
     }
 
@@ -213,6 +266,7 @@ struct resolve_bindings_class {
     data_binder<StrucType, std::string>
     transform(const CharData &)
     {
+        DEBUG;
         return { CHARDATA_NAME };
     }
 
@@ -224,6 +278,7 @@ struct resolve_bindings_class {
         data_binder<FieldType StrucType::*, Element<StrucType>>
         transform(const elt_binding<StrucType, FieldType>& eb)
         {
+            DEBUG;
             return { eb.elt->name, eb.field, eb.elt };
         }
 
@@ -233,6 +288,7 @@ struct resolve_bindings_class {
         data_binder<FieldType StrucType::*, std::string>
         transform(const attr_binding<StrucType, FieldType>& ab)
         {
+            DEBUG;
             return { ab.field };
         }
 };
