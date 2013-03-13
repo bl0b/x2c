@@ -4,38 +4,19 @@
 #include "XML_base.h"
 #include <vector>
 
-template <typename StrucType, typename FieldType, typename Structure>
-std::string get_name(const attr_eval& c)
-{
-    return c.name;
-}
 
-template <typename StrucType, typename FieldType>
-std::string get_name(const attr_bound<StrucType, FieldType>& c)
-{
-    return c.name;
-}
+template <typename A, typename B>
+std::string get_name(const data_binder<A, B>& d) { return d.name; }
 
-template <typename StrucType, typename FieldType, typename Structure>
-std::string get_name(const std::pair<const Element<FieldType, Structure>*, FieldType StrucType::*>& c)
-{
-    return c.first->name;
-}
-
-template <typename EvalType, typename Structure>
-std::string get_name(const Element<EvalType, Structure>* c)
-{
-    return c->name;
-}
-
-template <typename kls, typename Elt>
-std::string get_name(const combination<kls, Elt>& c) { return get_name(std::get<0>(c)); }
+template <typename kls, typename A, typename B>
+std::string get_name(const combination<kls, data_binder<A, B>>& c) { return std::get<0>(c).name; }
 
 struct iterator_base {
     bool state : 1;
     bool next : 1;
 
     iterator_base(bool s) : state(s), next(true) {}
+    virtual ~iterator_base() {}
 
     virtual bool accept(const std::string& name) = 0;
     virtual bool consume(const std::string& name) = 0;

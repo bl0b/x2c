@@ -3,6 +3,9 @@
 
 #include "structure.h"
 
+template <typename EvalType> struct Element;
+template <typename OutputType, typename EntityType> struct data_binder;
+
 template <typename EvalType>
 struct Entity {
     typedef EvalType eval_type;
@@ -13,9 +16,13 @@ struct Entity {
 };
 
 
-struct CharData {};
+struct CharData {
+    typedef std::string entity_type;
+    typedef void eval_type;
+};
 
 struct attr_eval {
+    typedef std::string entity_type;
     typedef void eval_type;
     std::string name;
     attr_eval(const std::string& s) : name(s) {}
@@ -23,27 +30,34 @@ struct attr_eval {
 
 
 template <typename StrucType, typename FieldType>
-struct attr_bound : public Entity<FieldType StrucType::*> {
+struct attr_binding : public Entity<FieldType StrucType::*> {
     using Entity<FieldType StrucType::*>::name;
-    using typename Entity<FieldType StrucType::*>::eval_type;
+
+    typedef std::string entity_type;
+    typedef FieldType eval_type;
 
     eval_type field;
 
-    attr_bound(const std::string& n, eval_type f) : Entity<FieldType StrucType::*>(n), field(f) {}
-    attr_bound(std::string && n, eval_type f) : Entity<FieldType StrucType::*>(n), field(f) {}
+    attr_binding(const std::string& n, eval_type f) : Entity<FieldType StrucType::*>(n), field(f) {}
+    attr_binding(std::string && n, eval_type f) : Entity<FieldType StrucType::*>(n), field(f) {}
+};
+
+
+template <typename StrucType, typename FieldType>
+struct elt_binding {
+    typedef Element<FieldType> entity_type;
+    typedef FieldType StrucType::* eval_type;
+
+    const entity_type* elt;
+    eval_type field;
 };
 
 
 template <typename OutputType>
-struct from_string {
-    static void convert(const std::string& s, OutputType& o)
-    {
-        std::stringstream(s) >> o;
-    }
-};
-
-template <typename EvalType, typename Structure> struct Element;
-template <typename OutputType, typename EntityType> struct data_binder;
+static void from_string(const std::string& s, OutputType& o)
+{
+    std::stringstream(s) >> o;
+}
 
 #endif
 

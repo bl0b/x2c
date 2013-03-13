@@ -6,7 +6,7 @@
 
 struct combination_base {};
 
-template <class kls, typename... Elements> struct combination;
+template <class kls, typename... Items> struct combination;
 
 
 template <typename X, typename A, typename B>
@@ -18,10 +18,12 @@ struct if_is_combinable {
     >::type type;
 };
 
+
 template <typename TransformerFactory>
 struct transformer {
     template <typename Something>
         struct dest_type {
+            static_assert(!std::is_base_of<combination_base, Something>::value, "Combinable !");
             static Something widget();
             typedef typename
                 std::remove_reference<
@@ -29,32 +31,33 @@ struct transformer {
                 >::type type;
         };
 
-    template <typename kls, typename... Elements>
-        struct dest_type<combination<kls, Elements...>> {
-            typedef combination<kls, typename dest_type<Elements>::type...> type;
+    template <typename kls, typename... Items>
+        struct dest_type<combination<kls, Items...>> {
+            typedef combination<kls, typename dest_type<Items>::type...> type;
         };
 
 
-    template <typename Element>
+    template <typename Item>
         static
-        auto transform(Element && x)
-            -> typename dest_type<Element>::type &&
+        auto transform(const Item & x)
+            -> typename dest_type<Item>::type &&
         {
+            static_assert(!(std::is_class<Item>::value && std::is_base_of<combination_base, Item>::value), "this should have never be called in this context.");
             typedef typename std::enable_if<
-                        !(std::is_class<Element>::value && std::is_base_of<combination_base, Element>::value),
+                        !(std::is_class<Item>::value && std::is_base_of<combination_base, Item>::value),
                         TransformerFactory>::type factory;
             return std::move(factory::transform(x));
         }
 
 
-    template <typename kls, typename... Elements>
+    template <typename kls, typename... Items>
         static
-        auto transform(const combination<kls, Elements...> & x)
-            -> typename dest_type<combination<kls, Elements...>>::type &&
+        auto transform(const combination<kls, Items...> & x)
+            -> typename dest_type<combination<kls, Items...>>::type &&
         {
             DEBUG;
-            typedef typename dest_type<combination<kls, Elements...>>::type return_type;
-            return std::move(map_tuple<transformer<TransformerFactory>, return_type, Elements...>::transform(x));
+            typedef typename dest_type<combination<kls, Items...>>::type return_type;
+            return std::move(map_tuple<transformer<TransformerFactory>, return_type, Items...>::transform(x));
         }
 
     /*template <typename X>*/
@@ -79,44 +82,46 @@ struct transformer {
     /*}*/
 };
 
-template <class kls, typename... Elements>
-struct combination : public std::tuple<Elements...>, public virtual combination_base {
+template <class kls, typename... Items>
+struct combination : public std::tuple<Items...>, public virtual combination_base {
     typedef kls derived;
-    typedef std::tuple<Elements...> tuple;
-    /*typedef Elements elements;*/
+    typedef std::tuple<Items...> tuple;
+    /*typedef Items elements;*/
 
     struct clone_helper {
         template <typename X> struct dest_type { typedef X type; };
         template <typename X> static X transform(const X& x) { return X(x); }
     };
 
-    combination(const Elements & ... y)
-        : std::tuple<Elements...>(y...)
+    combination(const Items & ... y)
+        : std::tuple<Items...>(y...)
     { debug_log << "ctor " << typeid(*this).name() << debug_endl; }
 
-    combination(const combination<kls, Elements...>&& c)
-        /*: std::tuple<Elements...>(map_tuple<clone_helper, tuple, Elements...>::transform(c))*/
-        : std::tuple<Elements...>(c)
+#if 0
+    combination(const combination<kls, Items...>&& c)
+        /*: std::tuple<Items...>(map_tuple<clone_helper, tuple, Items...>::transform(c))*/
+        : std::tuple<Items...>(c)
     { debug_log << "move ctor " << typeid(*this).name() << debug_endl; }
+#endif
 
-    combination(const combination<kls, Elements...>& c)
-        /*: std::tuple<Elements...>(map_tuple<clone_helper, tuple, Elements...>::transform(c))*/
-        : std::tuple<Elements...>(c)
+    combination(const combination<kls, Items...>& c)
+        /*: std::tuple<Items...>(map_tuple<clone_helper, tuple, Items...>::transform(c))*/
+        : std::tuple<Items...>(c)
     { debug_log << "copy ctor " << typeid(*this).name() << debug_endl; }
 
-    combination(const std::tuple<Elements...>& c)
-        : std::tuple<Elements...>(c)
-        /*: std::tuple<Elements...>(c)*/
+    combination(const std::tuple<Items...>& c)
+        : std::tuple<Items...>(c)
+        /*: std::tuple<Items...>(c)*/
     { debug_log << "tuple copy ctor " << typeid(*this).name() << debug_endl; }
-    /*combination(std::tuple<Elements...> && y) : std::tuple<Elements...>(y) {}*/
+    /*combination(std::tuple<Items...> && y) : std::tuple<Items...>(y) {}*/
 
-    template <typename IndexTuple, typename Element> struct combinator_helper;
-    template <int... Index, typename Element>
-        struct combinator_helper<index_tuple<Index...>, Element> {
-            typedef combination<kls, Elements..., Element> return_type;
+    template <typename IndexTuple, typename Item> struct combinator_helper;
+    template <int... Index, typename Item>
+        struct combinator_helper<index_tuple<Index...>, Item> {
+            typedef combination<kls, Items..., Item> return_type;
 
             static return_type
-            combine(combination<kls, Elements...> & c, Element && e)
+            combine(combination<kls, Items...> & c, Item && e)
             {
                 DEBUG;
                 return (return_type(
@@ -126,7 +131,7 @@ struct combination : public std::tuple<Elements...>, public virtual combination_
             }
 
             static return_type
-            combine(combination<kls, Elements...> & c, const Element & e)
+            combine(combination<kls, Items...> & c, const Item & e)
             {
                 DEBUG;
                 return (return_type(
@@ -136,46 +141,46 @@ struct combination : public std::tuple<Elements...>, public virtual combination_
             }
         };
 
-    template <typename Element>
-        combination<kls, Elements..., Element> combine(Element && e)
+    template <typename Item>
+        combination<kls, Items..., Item> combine(Item && e)
         {
             return combinator_helper<
-                       typename make_indexes<Elements...>::type,
-                       Element
+                       typename make_indexes<Items...>::type,
+                       Item
                    >::combine(*this, std::move(e));
         }
 
-    template <typename Element>
-        combination<kls, Elements..., Element> combine(const Element & e)
+    template <typename Item>
+        combination<kls, Items..., Item> combine(const Item & e)
         {
             return combinator_helper<
-                       typename make_indexes<Elements...>::type,
-                       Element
+                       typename make_indexes<Items...>::type,
+                       Item
                    >::combine(*this, e);
         }
 
-    template <typename IndexTuple, typename IndexTuple2, typename... Elements2> struct cat_helper;
-    template <int... Index1, int... Index2, typename... Elements2>
-        struct cat_helper<index_tuple<Index1...>, index_tuple<Index2...>, Elements2...> {
-            typedef combination<kls, Elements..., Elements2...> return_type;
+    template <typename IndexTuple, typename IndexTuple2, typename... Items2> struct cat_helper;
+    template <int... Index1, int... Index2, typename... Items2>
+        struct cat_helper<index_tuple<Index1...>, index_tuple<Index2...>, Items2...> {
+            typedef combination<kls, Items..., Items2...> return_type;
 
             static return_type &&
-            combine(combination<kls, Elements...> & c, combination<kls, Elements2...> && e)
+            combine(combination<kls, Items...> & c, combination<kls, Items2...> && e)
             {
                 return std::move(return_type(
-                           static_cast<Elements &&>(std::get<Index1>(c))...,
-                           static_cast<Elements2 &&>(std::get<Index2>(c))...
+                           static_cast<Items &&>(std::get<Index1>(c))...,
+                           static_cast<Items2 &&>(std::get<Index2>(c))...
                        ));
             }
         };
 
-    template <typename... Elements2>
-        combination<kls, Elements..., Elements2...> combine(std::tuple<Elements2...>&& t)
+    template <typename... Items2>
+        combination<kls, Items..., Items2...> combine(std::tuple<Items2...>&& t)
         {
             return cat_helper<
-                       typename make_indexes<Elements...>::type,
-                       typename make_indexes<Elements2...>::type,
-                       Elements2...
+                       typename make_indexes<Items...>::type,
+                       typename make_indexes<Items2...>::type,
+                       Items2...
                    >::combine(*this, std::move(t));
             /*return { std::forward(std::tuple_cat(*this, t)) };*/
             /*return { std::move(std::tuple_cat(*this, t)) };*/
@@ -188,7 +193,7 @@ struct combination : public std::tuple<Elements...>, public virtual combination_
         }
 
     template <typename TransformerFactory>
-        typename transformer<TransformerFactory>::template dest_type<combination<kls, Elements...>>::type &&
+        typename transformer<TransformerFactory>::template dest_type<combination<kls, Items...>>::type &&
         transform()
         {
             /*return *this;*/
@@ -216,27 +221,27 @@ struct combination : public std::tuple<Elements...>, public virtual combination_
 
 /* atoms */
 
-template <typename Element>
-combination<single, Element>
-make_single(const Element& e) { return { e }; }
+template <typename Item>
+combination<single, Item>
+make_single(const Item& e) { return { e }; }
 
-template <typename Element>
-combination<multiple, Element>
-make_multiple(const Element& e) { return { e }; }
+template <typename Item>
+combination<multiple, Item>
+make_multiple(const Item& e) { return { e }; }
 
-template <typename kls, typename Element>
-combination<optional<kls>, Element>
-make_optional(const combination<kls, Element>& e) { return { e }; }
+template <typename kls, typename Item>
+combination<optional<kls>, Item>
+make_optional(const combination<kls, Item>& e) { return { e }; }
 
-template <typename Element>
-combination<single, Element>
-make_single(Element&& e) { return { std::move(e) }; }
+template <typename Item>
+combination<single, Item>
+make_single(Item&& e) { return { std::move(e) }; }
 
-template <typename Element>
-combination<multiple, Element>
-make_multiple(Element&& e) { return { std::move(e) }; }
+template <typename Item>
+combination<multiple, Item>
+make_multiple(Item&& e) { return { std::move(e) }; }
 
-template <typename kls, typename Element>
-combination<optional<kls>, Element>
-make_optional(combination<kls, Element>&& e) { return { std::move(std::get<0>(e)) }; }
+template <typename kls, typename Item>
+combination<optional<kls>, Item>
+make_optional(combination<kls, Item>&& e) { return { std::move(std::get<0>(e)) }; }
 
