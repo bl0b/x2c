@@ -26,24 +26,23 @@ struct iterator_base {
     virtual bool is_done() const { return state && !next; }
 };
 
-template <typename kls>
+template <typename OutputType, typename kls, typename... Elements>
 struct iterator;
 
-template <typename kls, typename... Elements>
-iterator<kls>* make_iterator(const combination<kls, Elements...>& comb);
+template <typename OutputType, typename kls, typename... Elements>
+iterator<OutputType, kls, typename Elements...>* make_iterator(const combination<kls, Elements...>& comb);
 
-template <>
-struct iterator<single> : public iterator_base {
-    std::string ent_name;
+template <typename OutputType, typename OutputType, typename EntityType>
+struct iterator<OutputType, single, data_binder<OutputType, EntityType>> : public iterator_base {
+    EntityType* ent;
 
-    template <typename Ent>
-    iterator(const combination<single, Ent>& ent)
-        : iterator_base(false), ent_name(get_name(ent))
+    iterator(const combination<single, EntityType>& comb)
+        : iterator_base(false), ent(&std::get<0>(c))
     {}
 
     bool accept(const std::string& name)
     {
-        return next && name == ent_name;
+        return next && name == ent->name;
     }
 
     bool consume(const std::string& name)
@@ -54,18 +53,17 @@ struct iterator<single> : public iterator_base {
     }
 };
 
-template <>
-struct iterator<multiple> : public iterator_base {
-    std::string ent_name;
+template <typename OutputType, typename EntityType>
+struct iterator<OutputType, multiple, data_binder<OutputType, EntityType>> : public iterator_base {
+    EntityType* ent;
 
-    template <typename Ent>
-    iterator(const combination<multiple, Ent>& ent)
-        : iterator_base(false), ent_name(get_name(ent))
+    iterator(const combination<multiple, EntityType>& comb)
+        : iterator_base(false), ent(&std::get<0>(c))
     {}
 
     bool accept(const std::string& name)
     {
-        return name == ent_name;
+        return name == ent->name;
     }
 
     bool consume(const std::string& name)
@@ -78,53 +76,24 @@ struct iterator<multiple> : public iterator_base {
     bool is_done() const { return state; }
 };
 
-template <>
-struct iterator<optional<single>> : public iterator_base {
-    std::string ent_name;
-
-    template <typename Ent>
-    iterator(const combination<optional<single>, Ent>& ent)
-        : iterator_base(true), ent_name(get_name(ent))
+template <typename OutputType, typename EntityType>
+struct iterator<OutputType, optional<single>, data_binder<EvalType, EntityType>> : public iterator<OutputType, single, data_binder<OutputType, EntityType>> {
+    iterator(const combination<optional<single>, EntityType>& ent)
+        : iterator<single, data_binder<EvalType, EntityType>>(ent)
     {}
-
-    bool accept(const std::string& name)
-    {
-        return next && name == ent_name;
-    }
-
-    bool consume(const std::string& name)
-    {
-        state = accept(name);
-        next = false;
-        return state;
-    }
 
     bool is_done() const { return true; }
 };
 
-template <>
-struct iterator<optional<multiple>> : public iterator_base {
-    std::string ent_name;
-
-    template <typename Ent>
-    iterator(const combination<optional<multiple>, Ent>& ent)
-        : iterator_base(true), ent_name(get_name(ent))
+template <typename OutputType, typename EntityType>
+struct iterator<OutputType, optional<multiple>, data_binder<EvalType, EntityType>> : public iterator<OutputType, multiple, data_binder<OutputType, EntityType>> {
+    iterator(const combination<optional<multiple>, EntityType>& ent)
+        : iterator<multiple, data_binder<EvalType, EntityType>>(ent)
     {}
-
-    bool accept(const std::string& name)
-    {
-        return name == ent_name;
-    }
-
-    bool consume(const std::string& name)
-    {
-        state = accept(name);
-        next = state;
-        return state;
-    }
 
     bool is_done() const { return true; }
 };
+
 
 
 struct iterator_collection : public iterator_base {
@@ -164,8 +133,8 @@ struct iterator_collection : public iterator_base {
 };
 
 
-template <>
-struct iterator<unordered_sequence> : public iterator_collection {
+template <typename... Elements>
+struct iterator<unordered_sequence, Elements...> : public iterator_collection {
     using iterator_collection::coll_iterator;
     using iterator_collection::coll_const_iterator;
 

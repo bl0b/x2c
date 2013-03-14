@@ -1,6 +1,42 @@
 #include "XML_base.h"
+
+#include <expat.h>
+
+template <typename EvalType>
+struct xml_parser {
+    XML_Parser parser;
+    EvalType result;
+
+    xml_parser(/*Element_Base* root_element, */const XML_Char* encoding="UTF-8")
+        : parser(XML_ParserCreate(encoding))
+        , result()
+    {
+        XML_SetElementHandler(parser, start_hnd, end_hnd);
+        XML_SetCharacterDataHandler(parser, chardata_hnd);
+        XML_SetCdataSectionHandler(parser, cdata_start_hnd, cdata_end_hnd);
+        XML_SetUserData(parser, static_cast<void*>(this));
+    }
+
+    template <typename OtherEvalType>
+        xml_parser(xml_parser<OtherEvalType>& parent)
+        : parser(parent)
+        , result()
+
+
+    static void start_hnd(void* userData, const XML_Char* name, const XML_Char** attrs) {
+        
+    }
+};
+
+
+
+
 #include "XML_iterators.h"
 #include "XML_databinding.h"
+
+
+
+
 
 resolve_bindings<int> test;
 struct check {};
@@ -92,15 +128,10 @@ struct dtd {
     {
         DEBUG;
         a = chardata();
-        debug_log << debug_endl << __FILE__ << ':' << __LINE__ << debug_endl;
         b = A("value");
-        debug_log << debug_endl << __FILE__ << ':' << __LINE__ << debug_endl;
         factor = chardata();
-        debug_log << debug_endl << __FILE__ << ':' << __LINE__ << debug_endl;
         op = E(factor, &Manip::factor);
-        debug_log << debug_endl << __FILE__ << ':' << __LINE__ << debug_endl;
         foo = E(a, &Foo::a) & E(b, &Foo::b) & make_optional(E(op));
-        debug_log << debug_endl << __FILE__ << ':' << __LINE__ << debug_endl;
     }
 };
 #endif
