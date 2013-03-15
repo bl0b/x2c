@@ -5,11 +5,11 @@
 #include <vector>
 
 
-template <typename A, typename B>
-std::string get_name(const data_binder<A, B>& d) { return d.name; }
+template <typename A, typename B, typename C>
+std::string get_name(const data_binder<A, B, C>& d) { return d.name; }
 
-template <typename kls, typename A, typename B>
-std::string get_name(const combination<kls, data_binder<A, B>>& c) { return std::get<0>(c).name; }
+template <typename kls, typename A, typename B, typename C>
+std::string get_name(const combination<kls, data_binder<A, B, C>>& c) { return std::get<0>(c).name; }
 
 struct iterator_base {
     bool state : 1;
@@ -30,45 +30,89 @@ template <typename OutputType, typename kls, typename... Elements>
 struct iterator;
 
 template <typename OutputType, typename kls, typename... Elements>
-iterator<OutputType, kls, typename Elements...>* make_iterator(const combination<kls, Elements...>& comb);
+iterator<OutputType, kls, Elements...>* make_iterator(const combination<kls, Elements...>& comb);
 
-template <typename OutputType, typename OutputType, typename EntityType>
-struct iterator<OutputType, single, data_binder<OutputType, EntityType>> : public iterator_base {
-    EntityType* ent;
 
-    iterator(const combination<single, EntityType>& comb)
-        : iterator_base(false), ent(&std::get<0>(c))
+template <typename OutputType, typename SubOutputType, typename EntityType>
+struct iterator<OutputType, single, data_binder<OutputType, SubOutputType, EntityType>> : public iterator_base {
+    const data_binder<OutputType, SubOutputType, EntityType>* binder;
+
+    iterator(const combination<single, data_binder<OutputType, SubOutputType, EntityType>>& comb)
+        : iterator_base(false), binder(&std::get<0>(comb))
     {}
 
     bool accept(const std::string& name)
     {
-        return next && name == ent->name;
+        DEBUG;
+        std::cerr << '<' << binder->name << " vs " << name << '>' << std::endl;
+        return next && name == binder->name;
     }
 
     bool consume(const std::string& name)
     {
+        DEBUG;
         state = accept(name);
+        if (state) {
+            std::cerr << "[[" << typeid(binder).name() << "]]";
+        } else {
+            std::cerr << "[[FAILED]]";
+        }
         next = false;
         return state;
     }
 };
 
-template <typename OutputType, typename EntityType>
-struct iterator<OutputType, multiple, data_binder<OutputType, EntityType>> : public iterator_base {
-    EntityType* ent;
 
-    iterator(const combination<multiple, EntityType>& comb)
-        : iterator_base(false), ent(&std::get<0>(c))
+template <typename OutputType, typename SubOutputType>
+struct iterator<OutputType, single, data_binder<OutputType, SubOutputType, std::string>> : public iterator_base {
+    const data_binder<OutputType, SubOutputType, std::string>* binder;
+
+    iterator(const combination<single, data_binder<OutputType, SubOutputType, std::string>>& comb)
+        : iterator_base(false), binder(&std::get<0>(comb))
     {}
 
     bool accept(const std::string& name)
     {
-        return name == ent->name;
+        DEBUG;
+        return next && name == binder->name;
     }
 
     bool consume(const std::string& name)
     {
+        DEBUG;
+        std::cerr << __FILE__ << ':' << __LINE__ << std::endl;
         state = accept(name);
+        std::cerr << __FILE__ << ':' << __LINE__ << std::endl;
+        next = false;
+        std::cerr << __FILE__ << ':' << __LINE__ << std::endl;
+        return state;
+    }
+};
+
+
+template <typename OutputType, typename SubOutputType, typename EntityType>
+struct iterator<OutputType, multiple, data_binder<OutputType, SubOutputType, EntityType>> : public iterator_base {
+    const data_binder<OutputType, SubOutputType, EntityType>* binder;
+
+    iterator(const combination<multiple, data_binder<OutputType, SubOutputType, EntityType>>& comb)
+        : iterator_base(false), binder(&std::get<0>(comb))
+    {}
+
+    bool accept(const std::string& name)
+    {
+        DEBUG;
+        return name == binder->name;
+    }
+
+    bool consume(const std::string& name)
+    {
+        DEBUG;
+        state = accept(name);
+        if (state) {
+            std::cerr << "[[" << typeid(binder).name() << "]]";
+        } else {
+            std::cerr << "[[FAILED]]";
+        }
         next = state;
         return state;
     }
@@ -76,235 +120,293 @@ struct iterator<OutputType, multiple, data_binder<OutputType, EntityType>> : pub
     bool is_done() const { return state; }
 };
 
-template <typename OutputType, typename EntityType>
-struct iterator<OutputType, optional<single>, data_binder<EvalType, EntityType>> : public iterator<OutputType, single, data_binder<OutputType, EntityType>> {
-    iterator(const combination<optional<single>, EntityType>& ent)
-        : iterator<single, data_binder<EvalType, EntityType>>(ent)
-    {}
+
+template <typename OutputType, typename kls, typename SubOutputType, typename EntityType>
+struct iterator<OutputType, optional<kls>, data_binder<OutputType, SubOutputType, EntityType>>
+: public iterator<OutputType, kls, data_binder<OutputType, SubOutputType, EntityType>> {
+    iterator(const combination<optional<kls>, data_binder<OutputType, SubOutputType, EntityType>>& ent)
+        : iterator<OutputType, kls, data_binder<OutputType, SubOutputType, EntityType>>(ent)
+    { DEBUG; }
 
     bool is_done() const { return true; }
 };
 
-template <typename OutputType, typename EntityType>
-struct iterator<OutputType, optional<multiple>, data_binder<EvalType, EntityType>> : public iterator<OutputType, multiple, data_binder<OutputType, EntityType>> {
-    iterator(const combination<optional<multiple>, EntityType>& ent)
-        : iterator<multiple, data_binder<EvalType, EntityType>>(ent)
+
+
+namespace detail {
+    struct init_next_any {
+        bool ret;
+        template <typename Iterator>
+            void operator () (Iterator& i) { ret |= i.next; }
+    };
+
+    struct accept_any {
+        const std::string& name;
+        bool ret;
+        template <typename Iterator>
+            void operator () (Iterator& i) { ret |= i.accept(name); }
+    };
+
+    struct consume_first {
+        const std::string& name;
+        bool state;
+        bool next;
+        template <typename Iterator>
+            void operator () (Iterator& i)
+            {
+                if (!state) {
+                    state = i.consume(name);
+                    next = i.next;
+                }
+            }
+    };
+
+    struct is_done_all {
+        bool ret;
+        template <typename Iterator>
+            void operator () (const Iterator& i) { ret &= i.is_done(); }
+    };
+
+    struct is_done_any {
+        bool ret;
+        template <typename Iterator>
+            void operator () (const Iterator& i) { ret |= i.is_done(); }
+    };
+
+    struct accept_current {
+        const std::string& name;
+        size_t current;
+        bool ret;
+        template <typename Iterator>
+            void operator () (size_t index, Iterator& i)
+            {
+                if (index == current) {
+                    ret = i.accept(name);
+                }
+            }
+    };
+
+    struct consume_current {
+        const std::string name;
+        size_t current;
+        size_t last;
+        bool state;
+        bool next;
+        template <typename Iterator>
+            void operator () (size_t index, Iterator& i)
+            {
+                if (index == current) {
+                    if (i.accept(name)) {
+                        state = i.consume(name);
+                        next = i.next;
+                    } else if (i.is_done() && current < last) {
+                        ++current;
+                    } else {
+                        state = next = 0;
+                    }
+                } else if (index > current) {
+                    next |= i.is_accepting();
+                }
+            }
+    };
+
+    struct is_done_current {
+        size_t current;
+        bool ret;
+        template <typename Iterator>
+            void operator () (size_t index, const Iterator& i)
+            {
+                if (current <= index) {
+                    ret &= i.is_done();
+                }
+            }
+    };
+}
+
+template <typename OutputType, typename kls, typename... Elements>
+struct iterator_collection : public iterator_base {
+    struct factory {
+        template <typename... AnyElements>
+            static
+            iterator<OutputType, unordered_sequence, AnyElements...>
+            transform(const combination<unordered_sequence, AnyElements...>& comb)
+            {
+                return { comb };
+            }
+        template <typename... AnyElements>
+            static
+            iterator<OutputType, ordered_sequence, AnyElements...>
+            transform(const combination<ordered_sequence, AnyElements...>& comb)
+            {
+                return { comb };
+            }
+        template <typename... AnyElements>
+            static
+            iterator<OutputType, alternative, AnyElements...>
+            transform(const combination<alternative, AnyElements...>& comb)
+            {
+                return { comb };
+            }
+        template <typename AnyOutputType, typename AnyKls, typename AnyEntityType>
+            static
+            iterator<OutputType, AnyKls, data_binder<OutputType, AnyOutputType, AnyEntityType>>
+            transform(const combination<AnyKls, data_binder<OutputType, AnyOutputType, AnyEntityType>>& comb)
+            {
+                return { comb };
+            }
+    };
+
+    template <typename Element>
+    struct helper {
+        static const Element& widget();
+        typedef decltype(factory::transform(widget())) type;
+    };
+
+    typedef std::tuple<typename helper<Elements>::type...> contents_type;
+    
+    contents_type contents;
+
+    iterator_collection(const combination<kls, Elements...>& comb)
+        : iterator_base(false)
+        , contents(map_tuple<factory, contents_type, Elements...>::transform(comb))
     {}
 
-    bool is_done() const { return true; }
+    void update_next()
+    {
+        detail::init_next_any any { false };
+        iterate_over_tuple(any, contents);
+        next = any.ret;
+    }
 };
 
 
 template <typename OutputType, typename... Elements>
-struct iterator<OutputType, unordered_sequence, Elements...> {
-
-};
-
-
-struct iterator_collection : public iterator_base {
-    typedef std::vector<iterator_base*> collection_type;
-    collection_type sub;
-    typedef collection_type::iterator coll_iterator;
-    typedef collection_type::const_iterator coll_const_iterator;
-
-    struct init_coll {
-        collection_type sub;
-        template <typename Combination>
-        init_coll(const Combination& c)
-            : sub()
-        {
-            iterate_over_tuple(*this, c);
-        }
-        template <typename Combination>
-        void operator () (const Combination& c)
-        {
-            /*sub.push_back(new iterator<typename Combination::derived>(c));*/
-            sub.push_back(make_iterator(c));
-        }
-    };
-
-    template <typename... Elements, typename kls>
-        iterator_collection(const combination<kls, Elements...>& comb)
-            : iterator_base(false), sub(init_coll(comb).sub)
-        {}
-
-    virtual ~iterator_collection()
-    {
-        coll_iterator i = sub.begin(), j = sub.end();
-        for (; i != j; ++i) {
-            delete *i;
-        }
-    }
-};
-
-
-template <typename... Elements>
-struct iterator<unordered_sequence, Elements...> : public iterator_collection {
-    using iterator_collection::coll_iterator;
-    using iterator_collection::coll_const_iterator;
-
-    template <typename... Elements, typename kls>
-        iterator(const combination<kls, Elements...>& comb)
-            : iterator_collection(comb)
-        {
-            coll_iterator i = sub.begin(), j = sub.end();
-            state = false;
-            next = false;
-            for (; i != j; ++i) {
-                state |= (*i)->state;
-                next |= (*i)->next;
-            }
-        }
-
-    bool accept(const std::string& name)
-    {
-        bool ret = false;
-        coll_const_iterator i = sub.cbegin(), j = sub.cend();
-        for (; i != j; ++i) {
-            ret |= (*i)->accept(name);
-        }
-        return ret;
-    }
-
-    bool consume(const std::string& name)
-    {
-        coll_iterator i = sub.begin(), j = sub.end();
-        for (; i != j && !(*i)->accept(name); ++i);
-        if (i != j) {
-            state = (*i)->consume(name);
-            next = (*i)->next;
-        }
-        return state;
-    }
-
-    bool is_done() const
-    {
-        bool ret = true;
-        coll_const_iterator i = sub.cbegin(), j = sub.cend();
-        for (; i != j; ++i) {
-            ret &= (*i)->is_done();
-        }
-        return ret;
-    }
-};
-
-
-template <>
-struct iterator<ordered_sequence> : public iterator_collection {
-    using iterator_collection::coll_iterator;
-    using iterator_collection::coll_const_iterator;
-
-    coll_iterator cursor;
-
-    template <typename... Elements, typename kls>
-        iterator(const combination<kls, Elements...>& comb)
-            : iterator_collection(comb)
-        {
-            cursor = sub.begin();
-            state = (*cursor)->state;
-            next = (*cursor)->next;
-        }
-
-    bool is_done() const
-    {
-        if (cursor == sub.end()) {
-            return true;
-        }
-        coll_iterator succ = cursor;
-        do {
-            ++succ;
-        } while (succ != sub.end() && (*succ)->is_done());
-        return (*cursor)->is_done() && succ == sub.end();
-    }
-
-    bool accept(const std::string& name)
-    {
-        while(cursor != sub.end() && !(*cursor)->accept(name) && (*cursor)->is_done()) {
-            ++cursor;
-        }
-        return cursor != sub.end() && (*cursor)->accept(name);
-    }
-
-    bool consume(const std::string& name)
-    {
-        while (cursor != sub.end() && !(*cursor)->accept(name) && (*cursor)->is_done()) {
-            ++cursor;
-        }
-        if (cursor == sub.end()) {
-            state = false;
-            next = false;
-        } else {
-            state = (*cursor)->consume(name);
-            coll_iterator succ = cursor;
-            ++succ;
-            next = (*cursor)->next || succ != sub.end();
-        }
-        return state;
-    }
-};
-
-
-template <>
-struct iterator<alternative> : public iterator_collection {
-    using iterator_collection::coll_iterator;
-    using iterator_collection::coll_const_iterator;
-
-    template <typename... Elements, typename kls>
-        iterator(const combination<kls, Elements...>& comb)
-            : iterator_collection(comb)
-        {
-            coll_iterator i = sub.begin(), j = sub.end();
-            state = false;
-            next = false;
-            for (; i != j; ++i) {
-                state |= (*i)->state;
-                next |= (*i)->next;
-            }
-        }
-
-    bool accept(const std::string& name)
-    {
-        bool ret = false;
-        coll_iterator i = sub.begin(), j = sub.end();
-        for (; i != j;) {
-            if ((*i)->accept(name)) {
-                ret = true;
-                ++i;
-            } else {
-                delete *i;
-                i = sub.erase(i);
-            }
-        }
-        return ret;
-    }
-
-    bool consume(const std::string& name)
-    {
-        state = false;
-        coll_iterator i = sub.begin(), j = sub.end();
-        for (; i != j; ++i) {
-            state |= (*i)->consume(name);
-        }
-        return state;
-    }
-
-    bool is_done() const
-    {
-        bool ret = false;
-        coll_const_iterator i = sub.cbegin(), j = sub.cend();
-        for (; i != j; ++i) {
-            ret |= (*i)->is_done();
-        }
-        return ret;
-    }
-};
-
-
-
-template <typename kls, typename... Elements>
-iterator<kls>* make_iterator(const combination<kls, Elements...>& comb)
+struct iterator<OutputType, unordered_sequence, Elements...>
+    : public iterator_collection<OutputType, unordered_sequence, Elements...>
 {
-    return new iterator<kls>(comb);
+    using iterator_collection<OutputType, unordered_sequence, Elements...>::contents;
+    using iterator_collection<OutputType, unordered_sequence, Elements...>::state;
+    using iterator_collection<OutputType, unordered_sequence, Elements...>::next;
+    using iterator_collection<OutputType, ordered_sequence, Elements...>::update_next;
+
+    iterator(const combination<unordered_sequence, Elements...>& comb)
+        : iterator_collection<OutputType, unordered_sequence, Elements...>(comb)
+    {
+        update_next();
+    }
+
+    bool accept(const std::string& name)
+    {
+        detail::accept_any any { name, false };
+        iterate_over_tuple(any, contents);
+        return any.ret;
+    }
+
+    bool consume(const std::string& name)
+    {
+        detail::consume_first first { name, false, false };
+        iterate_over_tuple(first, contents);
+        state = first.state;
+        next = first.next;
+        return state;
+    }
+
+    bool is_done() const
+    {
+        detail::is_done_all all { true };
+        iterate_over_tuple(all, contents);
+        return all.ret;
+    }
+};
+
+
+template <typename OutputType, typename... Elements>
+struct iterator<OutputType, alternative, Elements...>
+    : public iterator_collection<OutputType, alternative, Elements...>
+{
+    using iterator_collection<OutputType, alternative, Elements...>::contents;
+    using iterator_collection<OutputType, alternative, Elements...>::state;
+    using iterator_collection<OutputType, alternative, Elements...>::next;
+    using iterator_collection<OutputType, ordered_sequence, Elements...>::update_next;
+
+    iterator(const combination<alternative, Elements...>& comb)
+        : iterator_collection<OutputType, alternative, Elements...>(comb)
+    {
+        update_next();
+    }
+
+    bool accept(const std::string& name)
+    {
+        detail::accept_any any { name, false };
+        iterate_over_tuple(any, contents);
+        update_next();
+        return any.ret;
+    }
+
+    bool consume(const std::string& name)
+    {
+        detail::consume_first first { name, false, false };
+        iterate_over_tuple(first, contents);
+        state = first.state;
+        update_next();
+        return state;
+    }
+
+    bool is_done() const
+    {
+        detail::is_done_any any { false };
+        iterate_over_tuple(any, contents);
+        return any.ret;
+    }
+};
+
+
+template <typename OutputType, typename... Elements>
+struct iterator<OutputType, ordered_sequence, Elements...>
+    : public iterator_collection<OutputType, ordered_sequence, Elements...>
+{
+    using iterator_collection<OutputType, ordered_sequence, Elements...>::contents;
+    using iterator_collection<OutputType, ordered_sequence, Elements...>::state;
+    using iterator_collection<OutputType, ordered_sequence, Elements...>::next;
+
+    size_t current;
+
+    iterator(const combination<ordered_sequence, Elements...>& comb)
+        : iterator_collection<OutputType, ordered_sequence, Elements...>(comb)
+        , current(0)
+    {}
+
+    bool accept(const std::string& name)
+    {
+        detail::accept_current cur { name, current, false };
+        iterate_over_tuple_with_index(cur, contents);
+        return cur.ret;
+    }
+
+    bool consume(const std::string& name)
+    {
+        detail::consume_current cur { name, current, std::tuple_size<decltype(contents)>::value - 1, false, false };
+        iterate_over_tuple_with_index(cur, contents);
+        current = cur.current;
+        state = cur.state;
+        next = cur.next;
+        std::cerr << '<' << current << ' ' << state << ' ' << next << '>' << std::endl;
+        return state;
+    }
+
+    bool is_done() const
+    {
+        detail::is_done_current all { current, true };
+        iterate_over_tuple_with_index(all, contents);
+        return all.ret;
+    }
+};
+
+
+template <typename OutputType, typename kls, typename... Elements>
+iterator<OutputType, kls, Elements...>* make_iterator(const combination<kls, Elements...>& comb)
+{
+    return new iterator<OutputType, kls, Elements...>(comb);
 }
 
 #endif

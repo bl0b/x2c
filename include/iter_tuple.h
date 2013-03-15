@@ -33,6 +33,45 @@ void iterate_over_tuple(Function& f, const std::tuple<Args...>& t)
 }
 
 
+template <int I, int TSize, typename Tuple>
+struct iterate_over_tuple_with_index_impl
+    : public iterate_over_tuple_impl<I + 1, TSize, Tuple>
+{
+    template <typename Function>
+        void operator () (Function& f, Tuple& t)
+        {
+            f(I, std::get<I>(t));
+            iterate_over_tuple_with_index_impl<I + 1, TSize, Tuple>() (f, t);
+        }
+    template <typename Function>
+        void operator () (Function& f, const Tuple& t)
+        {
+            f(I, std::get<I>(t));
+            iterate_over_tuple_with_index_impl<I + 1, TSize, Tuple>() (f, t);
+        }
+};
+
+template <int I, typename Tuple>
+struct iterate_over_tuple_with_index_impl<I, I, Tuple> {
+    template <typename Function> void operator () (Function& f, Tuple& t)
+    { (void)f; (void)t; }
+    template <typename Function> void operator () (Function& f, const Tuple& t)
+    { (void)f; (void)t; }
+};
+
+template <typename Function, typename... Args>
+void iterate_over_tuple_with_index(Function& f, const std::tuple<Args...>& t)
+{
+    iterate_over_tuple_with_index_impl<0, sizeof...(Args), std::tuple<Args...>>() (f, t);
+}
+
+template <typename Function, typename... Args>
+void iterate_over_tuple_with_index(Function& f, std::tuple<Args...>& t)
+{
+    iterate_over_tuple_with_index_impl<0, sizeof...(Args), std::tuple<Args...>>() (f, t);
+}
+
+
 template <typename Combinator, typename Evaluator>
 struct applier_t {
     Combinator& c;

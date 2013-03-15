@@ -4,7 +4,7 @@
 #include "structure.h"
 
 template <typename EvalType> struct Element;
-template <typename OutputType, typename EntityType> struct data_binder;
+template <typename ParentType, typename OutputType, typename EntityType> struct data_binder;
 template <typename EvalType> struct xml_parser;
 
 template <typename EvalType>

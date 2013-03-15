@@ -3,7 +3,7 @@
 
 /* simple setter */
 template <typename StrucType, typename FieldType>
-struct data_binder<FieldType StrucType::*, Element<StrucType>> {
+struct data_binder<StrucType, FieldType StrucType::*, Element<FieldType>> {
     typedef Element<FieldType> entity_type;
 
     std::string name;
@@ -14,7 +14,7 @@ struct data_binder<FieldType StrucType::*, Element<StrucType>> {
         : name(n), target(t), elt(e)
     { DEBUG; }
 
-    data_binder(const data_binder<FieldType StrucType::*, Element<StrucType>>& d)
+    data_binder(const data_binder<StrucType, FieldType StrucType::*, Element<StrucType>>& d)
         : name(d.name), target(d.target), elt(d.elt)
     { DEBUG; }
 
@@ -30,7 +30,7 @@ struct data_binder<FieldType StrucType::*, Element<StrucType>> {
 
 /* simple setter with allocator */
 template <typename StrucType, typename FieldType>
-struct data_binder<FieldType* StrucType::*, Element<StrucType>> {
+struct data_binder<StrucType, FieldType* StrucType::*, Element<FieldType>> {
     typedef Element<FieldType> entity_type;
 
     std::string name;
@@ -41,7 +41,7 @@ struct data_binder<FieldType* StrucType::*, Element<StrucType>> {
         : name(n), target(t), elt(e)
     { DEBUG; }
 
-    data_binder(const data_binder<FieldType* StrucType::*, Element<StrucType>>& d)
+    data_binder(const data_binder<StrucType, FieldType* StrucType::*, Element<StrucType>>& d)
         : name(d.name), target(d.target), elt(d.elt)
     { DEBUG; }
 
@@ -58,7 +58,7 @@ struct data_binder<FieldType* StrucType::*, Element<StrucType>> {
 
 /* manipulator (target type is not related to element::eval_type) */
 template <typename EvalType, typename Manipulator>
-struct data_binder<Manipulator, Element<EvalType>> {
+struct data_binder<EvalType, Manipulator, Element<Manipulator>> {
     typedef Element<Manipulator> entity_type;
 
     std::string name;
@@ -68,7 +68,7 @@ struct data_binder<Manipulator, Element<EvalType>> {
         : name(n), elt(e)
     { DEBUG; }
 
-    data_binder(const data_binder<Manipulator, Element<EvalType>>& d)
+    data_binder(const data_binder<EvalType, Manipulator, Element<Manipulator>>& d)
         : name(d.name), elt(d.elt)
     { DEBUG; }
 
@@ -87,7 +87,7 @@ struct data_binder<Manipulator, Element<EvalType>> {
 
 /* transient binding (target is forwarded) */
 template <typename EvalType>
-struct data_binder<EvalType, Element<EvalType>> {
+struct data_binder<EvalType, EvalType, Element<EvalType>> {
     typedef Element<EvalType> entity_type;
 
     std::string name;
@@ -97,7 +97,7 @@ struct data_binder<EvalType, Element<EvalType>> {
         : name(n), elt(e)
     { DEBUG; }
 
-    data_binder(const data_binder<EvalType, Element<EvalType>>& d)
+    data_binder(const data_binder<EvalType, EvalType, Element<EvalType>>& d)
         : name(d.name), elt(d.elt)
     { DEBUG; }
 
@@ -113,7 +113,7 @@ struct data_binder<EvalType, Element<EvalType>> {
 
 /* attribute and chardata eval_to binding */
 template <typename EvalType>
-struct data_binder<EvalType, std::string> {
+struct data_binder<EvalType, EvalType, std::string> {
     std::string name;
     typedef std::string entity_type;
 
@@ -121,7 +121,7 @@ struct data_binder<EvalType, std::string> {
         : name(n)
     { DEBUG; }
 
-    data_binder(const data_binder<EvalType, std::string>& d)
+    data_binder(const data_binder<EvalType, EvalType, std::string>& d)
         : name(d.name)
     { DEBUG; }
 
@@ -139,7 +139,7 @@ struct data_binder<EvalType, std::string> {
 
 /* attribute binding */
 template <typename StrucType, typename FieldType>
-struct data_binder<FieldType StrucType::*, std::string> {
+struct data_binder<StrucType, FieldType StrucType::*, std::string> {
     std::string name;
     FieldType StrucType::* field;
     typedef std::string entity_type;
@@ -148,7 +148,7 @@ struct data_binder<FieldType StrucType::*, std::string> {
         : name(n), field(f)
     { DEBUG; }
 
-    data_binder(const data_binder<FieldType StrucType::*, std::string>& d)
+    data_binder(const data_binder<StrucType, FieldType StrucType::*, std::string>& d)
         : name(d.name), field(d.field)
     { DEBUG; }
 
@@ -204,6 +204,31 @@ E(const Element<ManipulatorOrTransient>& elt)
     return { &elt };
 }
 
+template <typename StrucType, typename FieldType>
+combination<optional<single>, attr_binding<StrucType, FieldType>>
+OA(const char* name, FieldType StrucType::* field)
+{
+    return { { name, field } };
+}
+
+
+template <typename StrucType, typename FieldType>
+combination<optional<single>, elt_binding<StrucType, FieldType>>
+OE(const Element<FieldType>& elt, FieldType StrucType::* field)
+{
+    return {
+        { &elt, field }
+    };
+}
+
+
+template <typename ManipulatorOrTransient>
+combination<optional<single>, const Element<ManipulatorOrTransient>*>
+OE(const Element<ManipulatorOrTransient>& elt)
+{
+    return { &elt };
+}
+
 
 #define CHARDATA_NAME "#CHARDATA"
 
@@ -213,7 +238,7 @@ struct resolve_bindings_integral {
     /* transient */
     template <typename ManipulatorOrTransient>
         static
-        data_binder<ManipulatorOrTransient, Element<IntegralType>>
+        data_binder<IntegralType, ManipulatorOrTransient, Element<ManipulatorOrTransient>>
         transform(const Element<ManipulatorOrTransient>* e)
         {
             DEBUG;
@@ -222,7 +247,7 @@ struct resolve_bindings_integral {
 
     /* attr eval_to */
     static
-    data_binder<IntegralType, std::string>
+    data_binder<IntegralType, IntegralType, std::string>
     transform(const attr_eval & ae)
     {
         DEBUG;
@@ -231,7 +256,7 @@ struct resolve_bindings_integral {
 
     /* chardata eval_to */
     static
-    data_binder<IntegralType, std::string>
+    data_binder<IntegralType, IntegralType, std::string>
     transform(const CharData &)
     {
         DEBUG;
@@ -245,7 +270,7 @@ struct resolve_bindings_class {
     /* transient */
     template <typename ManipulatorOrTransient>
         static
-        data_binder<ManipulatorOrTransient, Element<StrucType>>
+        data_binder<StrucType, ManipulatorOrTransient, Element<ManipulatorOrTransient>>
         transform(const Element<ManipulatorOrTransient>* e)
         {
             DEBUG;
@@ -254,7 +279,7 @@ struct resolve_bindings_class {
 
     /* attr eval_to */
     static
-    data_binder<StrucType, std::string>
+    data_binder<StrucType, StrucType, std::string>
     transform(const attr_eval & ae)
     {
         DEBUG;
@@ -263,7 +288,7 @@ struct resolve_bindings_class {
 
     /* chardata eval_to */
     static
-    data_binder<StrucType, std::string>
+    data_binder<StrucType, StrucType, std::string>
     transform(const CharData &)
     {
         DEBUG;
@@ -275,7 +300,7 @@ struct resolve_bindings_class {
     /* simple setter with allocator */
     template <typename FieldType>
         static
-        data_binder<FieldType StrucType::*, Element<StrucType>>
+        data_binder<StrucType, FieldType StrucType::*, Element<FieldType>>
         transform(const elt_binding<StrucType, FieldType>& eb)
         {
             DEBUG;
@@ -285,7 +310,7 @@ struct resolve_bindings_class {
     /* attr binding */
     template <typename FieldType>
         static
-        data_binder<FieldType StrucType::*, std::string>
+        data_binder<StrucType, FieldType StrucType::*, std::string>
         transform(const attr_binding<StrucType, FieldType>& ab)
         {
             DEBUG;

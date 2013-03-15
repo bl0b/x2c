@@ -4,6 +4,17 @@
 #include <functional>
 #include <iostream>
 
+#include <cxxabi.h>
+
+inline const std::string demangle(const char* name) {
+    int status = -4;
+    char* res = abi::__cxa_demangle(name, NULL, NULL, &status);
+    const char* const demangled_name = (status==0)?res:name;
+    std::string ret_val(demangled_name);
+    free(res);
+    return ret_val;
+}
+
 struct combination_base {};
 
 template <class kls, typename... Items> struct combination;
@@ -75,7 +86,7 @@ struct combination : public std::tuple<Items...>, public virtual combination_bas
 
     combination(Items ... y)
         : std::tuple<Items...>(y...)
-    { debug_log << "ctor " << typeid(*this).name() << debug_endl; }
+    { debug_log << "ctor " << demangle(typeid(*this).name()) << debug_endl; }
 
 #if 0
     combination(const combination<kls, Items...>&& c)
@@ -87,12 +98,12 @@ struct combination : public std::tuple<Items...>, public virtual combination_bas
     combination(const combination<kls, Items...>& c)
         /*: std::tuple<Items...>(map_tuple<clone_helper, tuple, Items...>::transform(c))*/
         : std::tuple<Items...>(c)
-    { debug_log << "copy ctor " << typeid(*this).name() << debug_endl; }
+    { debug_log << "copy ctor " << demangle(typeid(*this).name()) << debug_endl; }
 
     combination(const std::tuple<Items...>& c)
         : std::tuple<Items...>(c)
         /*: std::tuple<Items...>(c)*/
-    { debug_log << "tuple copy ctor " << typeid(*this).name() << debug_endl; }
+    { debug_log << "tuple copy ctor " << demangle(typeid(*this).name()) << debug_endl; }
     /*combination(std::tuple<Items...> && y) : std::tuple<Items...>(y) {}*/
 
     template <typename IndexTuple, typename Item> struct combinator_helper;

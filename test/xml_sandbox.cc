@@ -4,28 +4,6 @@
 
 template <typename EvalType>
 struct xml_parser {
-    XML_Parser parser;
-    EvalType result;
-
-    xml_parser(/*Element_Base* root_element, */const XML_Char* encoding="UTF-8")
-        : parser(XML_ParserCreate(encoding))
-        , result()
-    {
-        XML_SetElementHandler(parser, start_hnd, end_hnd);
-        XML_SetCharacterDataHandler(parser, chardata_hnd);
-        XML_SetCdataSectionHandler(parser, cdata_start_hnd, cdata_end_hnd);
-        XML_SetUserData(parser, static_cast<void*>(this));
-    }
-
-    template <typename OtherEvalType>
-        xml_parser(xml_parser<OtherEvalType>& parent)
-        : parser(parent)
-        , result()
-
-
-    static void start_hnd(void* userData, const XML_Char* name, const XML_Char** attrs) {
-        
-    }
 };
 
 
@@ -81,7 +59,7 @@ struct Element : public Entity<EvalType> {
         {
             auto transformed = linker::transform(std::move(s));
             iterator = [=] () {
-                return make_iterator(transformed);
+                return make_iterator<EvalType>(transformed);
             };
             return *this;
         }
@@ -111,7 +89,7 @@ struct Manip {
 };
 
 
-#if 1
+#if 0
 struct dtd {
     Element<int> a;
     Element<double> b;
@@ -132,9 +110,39 @@ struct dtd {
         factor = chardata();
         op = E(factor, &Manip::factor);
         foo = E(a, &Foo::a) & E(b, &Foo::b) & make_optional(E(op));
+        /*foo = E(a, &Foo::a) & E(b, &Foo::b) & E(op);*/
     }
 };
 #endif
+
+
+#define DTD_START(dtd_name, root_name, eval_type) \
+    struct dtd_name ## _type { \
+        Element<eval_type> root_name; \
+        dtd_name ## _type () \
+            : root_name(#root_name) \
+        {
+
+#define ELEMENT(elt_name, eval_type) Element<eval_type> elt_name(#elt_name)
+
+#define DTD_END(dtd_name) \
+        } \
+    } dtd_name;
+
+/*DTD_START(dtd, foo, Foo)*/
+DTD_START(dtd, op, Manip)
+    ELEMENT(a, int);
+    ELEMENT(b, double);
+    ELEMENT(factor, double);
+    /*ELEMENT(op, Manip);*/
+    ELEMENT(foo, Foo);
+
+    a = chardata();
+    b = A("value");
+    factor = chardata();
+    op = OE(factor, &Manip::factor);
+    foo = E(a, &Foo::a) & E(b, &Foo::b) & E(op);
+DTD_END(dtd)
 
 
 const char* XML1 = "<foo><a>1234</a><b value=\"43.21\"></foo>";
@@ -155,16 +163,15 @@ void feed(std::string iter_name, std::string name, iterator_base& i)
 int main(int argc, char** argv)
 {
 #if 1
-    dtd d;
-    debug_log << __FILE__ << ':' << __LINE__ << debug_endl;
-    auto iop = d.op.iterator();
-    debug_log << __FILE__ << ':' << __LINE__ << debug_endl;
-    auto ifoo = d.foo.iterator();
+    auto iop = dtd.op.iterator();
     debug_log << __FILE__ << ':' << __LINE__ << debug_endl;
     std::cout << "iop " << (*iop) << std::endl;
     feed("iop", "factor", *iop);
     feed("iop", "factor", *iop);
     std::cout << std::endl;
+#else
+    auto ifoo = dtd.foo.iterator();
+    debug_log << __FILE__ << ':' << __LINE__ << debug_endl;
     std::cout << "ifoo " << (*ifoo) << std::endl;
     feed("ifoo", "a", *ifoo);
     feed("ifoo", "b", *ifoo);
