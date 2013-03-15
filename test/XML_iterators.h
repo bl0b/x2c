@@ -95,6 +95,11 @@ struct iterator<OutputType, optional<multiple>, data_binder<EvalType, EntityType
 };
 
 
+template <typename OutputType, typename... Elements>
+struct iterator<OutputType, unordered_sequence, Elements...> {
+
+};
+
 
 struct iterator_collection : public iterator_base {
     typedef std::vector<iterator_base*> collection_type;

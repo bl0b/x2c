@@ -1,4 +1,4 @@
-CXX=g++-4.7.0
+CXX=g++-4.8
 CXXARGS=--std=gnu++0x -Wall
 
 INC=-I../include

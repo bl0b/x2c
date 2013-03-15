@@ -7,6 +7,15 @@
 
 #include <typeinfo>
 
+
+template <typename... Inner>
+struct test_unpack;
+
+template <typename... Tuples>
+struct test_unpack<std::tuple<Tuples>...> {};
+
+typedef test_unpack<std::tuple<int, int>, std::tuple<double, int>> coin;
+
 #if 0
 
 template <int I, int TSize, typename Tuple>
