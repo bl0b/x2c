@@ -39,10 +39,10 @@ struct attr_binding : public Entity<FieldType StrucType::*> {
     typedef std::string entity_type;
     typedef FieldType eval_type;
 
-    eval_type field;
+    FieldType StrucType::* field;
 
-    attr_binding(const std::string& n, eval_type f) : Entity<FieldType StrucType::*>(n), field(f) {}
-    attr_binding(std::string && n, eval_type f) : Entity<FieldType StrucType::*>(n), field(f) {}
+    attr_binding(const std::string& n, FieldType StrucType::* f) : Entity<FieldType StrucType::*>(n), field(f) {}
+    attr_binding(std::string && n, FieldType StrucType::* f) : Entity<FieldType StrucType::*>(n), field(f) {}
 };
 
 
