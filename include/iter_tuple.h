@@ -14,6 +14,13 @@ struct iterate_over_tuple_impl
             f(std::get<I>(t));
             iterate_over_tuple_impl<I + 1, TSize, Tuple>::operator () (f, t);
         }
+
+    template <typename Function>
+        void operator () (Function& f, Tuple& t)
+        {
+            f(std::get<I>(t));
+            iterate_over_tuple_impl<I + 1, TSize, Tuple>::operator () (f, t);
+        }
 };
 
 template <int I, typename Tuple>
@@ -28,6 +35,13 @@ struct iterate_over_tuple_impl<I, I, Tuple> {
 
 template <typename Function, typename... Args>
 void iterate_over_tuple(Function& f, const std::tuple<Args...>& t)
+{
+    iterate_over_tuple_impl<0, sizeof...(Args), std::tuple<Args...>>() (f, t);
+}
+
+
+template <typename Function, typename... Args>
+void iterate_over_tuple(Function& f, std::tuple<Args...>& t)
 {
     iterate_over_tuple_impl<0, sizeof...(Args), std::tuple<Args...>>() (f, t);
 }

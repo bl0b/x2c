@@ -27,6 +27,17 @@ struct iterator_base {
     virtual bool is_done() const { return state && !next; }
 };
 
+
+template <typename OutputType>
+struct iterator_empty : public iterator_base<OutputType> {
+    using iterator_base<OutputType>::next;
+
+    iterator_empty() : iterator_base<OutputType>(true) { next = false; }
+    bool accept(const std::string& name) { return false; (void)name; }
+    bool consume(const std::string& name, xml_context<OutputType>* context) { return false; (void)name; (void)context; }
+};
+
+
 template <typename OutputType, typename kls, typename... Elements>
 iterator<OutputType, kls, Elements...>* make_iterator(const combination<kls, Elements...>& comb);
 
@@ -162,7 +173,7 @@ namespace detail {
 
     template <typename OutputType>
     struct consume_first {
-        const std::string& name;
+        const std::string name;
         bool state;
         bool next;
         xml_context<OutputType>* context;
@@ -307,7 +318,7 @@ struct iterator<OutputType, unordered_sequence, Elements...>
     using iterator_collection<OutputType, unordered_sequence, Elements...>::contents;
     using iterator_collection<OutputType, unordered_sequence, Elements...>::state;
     using iterator_collection<OutputType, unordered_sequence, Elements...>::next;
-    using iterator_collection<OutputType, ordered_sequence, Elements...>::update_next;
+    using iterator_collection<OutputType, unordered_sequence, Elements...>::update_next;
 
     iterator(const combination<unordered_sequence, Elements...>& comb)
         : iterator_collection<OutputType, unordered_sequence, Elements...>(comb)
@@ -347,7 +358,7 @@ struct iterator<OutputType, alternative, Elements...>
     using iterator_collection<OutputType, alternative, Elements...>::contents;
     using iterator_collection<OutputType, alternative, Elements...>::state;
     using iterator_collection<OutputType, alternative, Elements...>::next;
-    using iterator_collection<OutputType, ordered_sequence, Elements...>::update_next;
+    using iterator_collection<OutputType, alternative, Elements...>::update_next;
 
     iterator(const combination<alternative, Elements...>& comb)
         : iterator_collection<OutputType, alternative, Elements...>(comb)

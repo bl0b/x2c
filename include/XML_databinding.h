@@ -54,6 +54,7 @@ struct data_binder<StrucType, FieldType StrucType::*, Element<FieldType>> {
     void after(StrucType* ptr, FieldType* data) const
     {
         DEBUG;
+        debug_log << "container=" << ptr << " \"" << elt->name << "\" target=" << ptr->*target << debug_endl;
         (void)ptr; (void)data;
     }
 };
@@ -87,7 +88,7 @@ struct data_binder<StrucType, FieldType* StrucType::*, Element<FieldType>> {
     void after(StrucType* container, FieldType* data) const
     {
         DEBUG;
-        debug_log << "container=" << container << " target=" << container->*target << debug_endl;
+        debug_log << "container=" << container << " \"" << elt->name << "\" target=" << container->*target << debug_endl;
         (void)container; (void)data;
     }
 };
@@ -121,6 +122,7 @@ struct data_binder<EvalType, Manipulator, Element<Manipulator>> {
     void after(EvalType* container, Manipulator* data) const
     {
         DEBUG;
+        debug_log << "container=" << container << " \"" << elt->name << "\" manip=" << data << debug_endl;
         (*data)(*container);
         delete data;
     }
