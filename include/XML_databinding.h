@@ -200,7 +200,7 @@ struct data_binder<StrucType, FieldType StrucType::*, std::string> {
 
     FieldType* install(StrucType* container) const
     {
-        return container->*field;
+        return &(container->*field);
     }
 
     void after(FieldType* ptr, std::string* data) const
@@ -380,7 +380,7 @@ struct resolve_bindings_class {
         transform(const attr_binding<StrucType, FieldType>& ab)
         {
             DEBUG;
-            return { ab.field };
+            return { ab.name, ab.field };
         }
 };
 
