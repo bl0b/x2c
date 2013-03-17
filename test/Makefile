@@ -8,13 +8,22 @@ C=$(CXX) $(CXXARGS) $(INC)
 TARGETS=sandbox sandbox-prof sandbox-opt sandbox-opt-prof
 
 #all: $(TARGETS)
-all: xml_sandbox
+all: test
 
 include .depend
 
 .depend: sandbox.cc xml_sandbox.cc
 	$C --depend sandbox.cc | sed 's/^sandbox\.o:/$(TARGETS):/' > $@
 	$C --depend xml_sandbox.cc | sed 's/^xml_sandbox\.o:/xml_sandbox:/' >> $@
+
+test: xml_test-ndebug
+	./$<
+
+xml_test-ndebug: xml_test.cc
+	$C $< -o $@ -DNDEBUG -ggdb -lexpat
+
+xml_test: xml_test.cc
+	$C $< -o $@ -ggdb -lexpat
 
 sandbox: sandbox.cc 
 	$C $< -o $@ -ggdb
