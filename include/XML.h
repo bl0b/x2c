@@ -3,7 +3,7 @@
 
 #include <sstream>
 #include <expat.h>
-
+#include <exception>
 
 #include "XML_base.h"
 #include "XML_iterators.h"
@@ -11,6 +11,23 @@
 
 
 #define BUFF_SIZE 4096
+
+struct xml_exception : public std::exception {
+    int line, col;
+    std::string msg;
+
+    xml_exception(XML_Parser parser)
+        : std::exception()
+        , line(XML_GetCurrentLineNumber(parser))
+        , col(XML_GetCurrentColumnNumber(parser))
+    {
+        std::stringstream s;
+        s << "Error at line " << line << " column " << col;
+        msg = s.str();
+    }
+
+    const char* what() const throw() { return msg.c_str(); }
+};
 
 struct xml_context_impl {
     std::stringstream buffer;
@@ -74,7 +91,7 @@ template <typename EvalType>
 
             consume = [this] (const std::string& name)
             {
-                debug_log << "CONSUME " << name << std::endl;
+                debug_log << "CONSUME " << name << debug_endl;
                 return iter->consume(name, this);
             };
         }
@@ -202,7 +219,9 @@ struct XMLReader {
         while (!is.eof()) {
             void *buff = XML_GetBuffer(parser, BUFF_SIZE);
             is.read((char*) buff, BUFF_SIZE);
-            XML_ParseBuffer(parser, is.gcount(), is.eof());
+            if (!XML_ParseBuffer(parser, is.gcount(), is.eof())) {
+                throw xml_exception(parser);
+            }
         }
     }
 
@@ -213,7 +232,7 @@ struct XMLReader {
     }
 
     static void start_hnd(void* userData, const XML_Char* name, const XML_Char** attrs) {
-        debug_log << "start " << name << std::endl;
+        debug_log << "start " << name << debug_endl;
         xml_context_impl* context = static_cast<xml_context_impl*>(userData);
         if (!context->consume_element(name)) {
             /* ERROR */
@@ -224,7 +243,7 @@ struct XMLReader {
         /*static_cast<XMLReader*>(userData)->_start(name, attrs);*/
     }
     static void end_hnd(void* userData, const XML_Char* name) {
-        debug_log << "end " << name << std::endl;
+        debug_log << "end " << name << debug_endl;
         xml_context_impl* context = static_cast<xml_context_impl*>(userData);
         context->finish();
         delete context;
@@ -238,7 +257,7 @@ struct XMLReader {
         (void)userData;
     }
     static void chardata_hnd(void* userData, const XML_Char* data, int len) {
-        debug_log << "chardata " << std::string(data, data + len) << std::endl;
+        debug_log << "chardata " << std::string(data, data + len) << debug_endl;
         static_cast<xml_context_impl*>(userData)->buffer << std::string(data, data + len);
     }
 };
