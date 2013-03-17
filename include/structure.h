@@ -141,22 +141,24 @@ struct combination : public std::tuple<Items...>, public virtual combination_bas
             {
                 return std::move(return_type(
                            std::get<Index1>(c)...,
-                           std::get<Index2>(c)...
+                           std::get<Index2>(e)...
                        ));
             }
         };
 
+#if 1
     template <typename... Items2>
-        combination<kls, Items..., Items2...> combine(const std::tuple<Items2...>& t) const
+        combination<kls, Items..., Items2...> combine(const combination<kls, Items2...>& t) const
         {
             return cat_helper<
                        typename make_indexes<Items...>::type,
                        typename make_indexes<Items2...>::type,
                        Items2...
-                   >::combine(*this, std::move(t));
+                   >::combine(*this, t);
             /*return { std::forward(std::tuple_cat(*this, t)) };*/
             /*return { std::move(std::tuple_cat(*this, t)) };*/
         }
+#endif
 
     template <typename Combinator, typename Evaluator>
         void apply(Combinator& c = Combinator(), Evaluator& e = Evaluator())
