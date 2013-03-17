@@ -7,17 +7,14 @@ struct data_binder<void, RootType, Element<RootType>> {
 
     const std::string name;
     const entity_type* elt;
-    RootType* data;
 
     data_binder(const std::string& n, const entity_type* e)
-        : name(n), elt(e), data(new RootType())
-    {
-        debug_log << "Root data=" << data << debug_endl;
-    }
+        : name(n), elt(e)
+    {}
 
     RootType* install(void* container) const
     {
-        return const_cast<RootType*>(data);
+        return new RootType();
         (void)container;
     }
 
@@ -25,6 +22,13 @@ struct data_binder<void, RootType, Element<RootType>> {
     {
         DEBUG;
         (void)ptr; (void)data;
+    }
+
+    void rollback(RootType*& ptr) const
+    {
+        std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << std::endl;
+        delete ptr;
+        ptr = NULL;
     }
 };
 
@@ -56,6 +60,12 @@ struct data_binder<StrucType, FieldType StrucType::*, Element<FieldType>> {
         DEBUG;
         debug_log << "container=" << ptr << " \"" << elt->name << "\" target=" << ptr->*target << debug_endl;
         (void)ptr; (void)data;
+    }
+
+    void rollback(FieldType*& ptr) const
+    {
+        std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << std::endl;
+        (void)ptr;
     }
 };
 
@@ -90,6 +100,13 @@ struct data_binder<StrucType, FieldType* StrucType::*, Element<FieldType>> {
         DEBUG;
         debug_log << "container=" << container << " \"" << elt->name << "\" target=" << container->*target << debug_endl;
         (void)container; (void)data;
+    }
+
+    void rollback(FieldType*& ptr) const
+    {
+        std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << std::endl;
+        delete ptr;
+        ptr = nullptr;
     }
 };
 
@@ -126,6 +143,13 @@ struct data_binder<EvalType, Manipulator, Element<Manipulator>> {
         (*data)(*container);
         delete data;
     }
+
+    void rollback(Manipulator*& ptr) const
+    {
+        std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << std::endl;
+        delete ptr;
+        ptr = NULL;
+    }
 };
 
 
@@ -152,6 +176,12 @@ struct data_binder<EvalType, EvalType, Element<EvalType>> {
 
     void after(EvalType* container, EvalType* data) const
     { DEBUG; }
+
+    void rollback(EvalType*& ptr) const
+    {
+        std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << std::endl;
+        (void)ptr;
+    }
 };
 
 
@@ -179,6 +209,12 @@ struct data_binder<EvalType, EvalType, std::string> {
         DEBUG;
         from_string(*data, *container);
         debug_log << "converted => " << (*container) << debug_endl;
+    }
+
+    void rollback(EvalType*& ptr) const
+    {
+        std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << std::endl;
+        (void)ptr;
     }
 };
 
@@ -208,6 +244,12 @@ struct data_binder<StrucType, FieldType StrucType::*, std::string> {
         DEBUG;
         from_string(*data, *ptr);
         debug_log << "converted => " << (*ptr) << debug_endl;
+    }
+
+    void rollback(FieldType*& ptr) const
+    {
+        std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << std::endl;
+        (void)ptr;
     }
 };
 

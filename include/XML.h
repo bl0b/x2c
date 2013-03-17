@@ -33,6 +33,7 @@ struct xml_context_impl {
     std::stringstream buffer;
     XML_Parser parser;
     xml_context_impl* parent;
+    std::function<void()> rollback;
 
     xml_context_impl(XML_Parser p, xml_context_impl* parent_context)
         : buffer()
@@ -84,6 +85,12 @@ template <typename EvalType>
                 /*debug_log << "didn't define after()" << debug_endl;*/
             }
 
+            rollback = [binder, this] ()
+            {
+                std::cerr << this << " ROLLBACK" << std::endl;
+                binder.rollback(data);
+                after = [] () {};
+            };
 
             /*debug_log << "element address=" << binder.elt << debug_endl;*/
             /*debug_log << "element iterator() ? " << ((bool)binder.elt->iterator) << debug_endl;*/
@@ -174,7 +181,8 @@ struct XMLReader {
         XML_SetElementHandler(parser, start_hnd, end_hnd);
         XML_SetElementHandler(parser, start_hnd, end_hnd);
         XML_SetCharacterDataHandler(parser, chardata_hnd);
-        XML_SetCdataSectionHandler(parser, cdata_start_hnd, cdata_end_hnd);
+        /*XML_SetCdataSectionHandler(parser, cdata_start_hnd, cdata_end_hnd);*/
+        XML_SetUserData(parser, NULL);
     }
 
     ~XMLReader()
@@ -183,7 +191,7 @@ struct XMLReader {
     }
 
     template <typename EvalType>
-        struct _root { EvalType* ptr; };
+        struct _root { EvalType* ptr; _root() : ptr(nullptr) {} };
 
     template <typename EvalType>
     EvalType* parse_from(const Element<EvalType>& root, std::istream& is)
@@ -192,11 +200,13 @@ struct XMLReader {
         Element<_root<EvalType>> pseudo_root("");
         pseudo_root = E(root, &_root<EvalType>::ptr);
         data_binder<void, _root<EvalType>, Element<_root<EvalType>>> root_binding("", &pseudo_root);
-        XML_SetUserData(parser, static_cast<void*>(
-            new xml_context<_root<EvalType>>(parser, static_cast<xml_context<void>*>(nullptr), root_binding)
-        ));
+        xml_context<_root<EvalType>>* context = new xml_context<_root<EvalType>>(parser, static_cast<xml_context<void>*>(nullptr), root_binding);
+        XML_SetUserData(parser, static_cast<void*>(context));
         parse(is);
-        return root_binding.data->ptr;
+        EvalType* ret = context->data->ptr;
+        delete context->data;
+        delete context;
+        return ret;
     }
 
     static bool eat_attributes(XML_Parser parser, const XML_Char** attributes)
@@ -214,12 +224,25 @@ struct XMLReader {
         return ok;
     }
 
+    void rollback()
+    {
+        xml_context_impl* data;
+        do {
+            data = static_cast<xml_context_impl*>(XML_GetUserData(parser));
+            if (data && data->rollback) {
+                data->rollback();
+            }
+            delete data;
+        } while (data != NULL);
+    }
+
     void parse(std::istream& is)
     {
         while (!is.eof()) {
             void *buff = XML_GetBuffer(parser, BUFF_SIZE);
             is.read((char*) buff, BUFF_SIZE);
             if (!XML_ParseBuffer(parser, is.gcount(), is.eof())) {
+                rollback();
                 throw xml_exception(parser);
             }
         }
@@ -248,14 +271,14 @@ struct XMLReader {
         context->finish();
         delete context;
     }
-    static void cdata_start_hnd(void* userData) {
-        std::cout << "CDATA start" << std::endl;
-        (void)userData;
-    }
-    static void cdata_end_hnd(void* userData) {
-        std::cout << "CDATA end" << std::endl;
-        (void)userData;
-    }
+    /*static void cdata_start_hnd(void* userData) {*/
+        /*std::cout << "CDATA start" << std::endl;*/
+        /*(void)userData;*/
+    /*}*/
+    /*static void cdata_end_hnd(void* userData) {*/
+        /*std::cout << "CDATA end" << std::endl;*/
+        /*(void)userData;*/
+    /*}*/
     static void chardata_hnd(void* userData, const XML_Char* data, int len) {
         debug_log << "chardata " << std::string(data, data + len) << debug_endl;
         static_cast<xml_context_impl*>(userData)->buffer << std::string(data, data + len);
