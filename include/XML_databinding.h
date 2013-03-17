@@ -1,12 +1,40 @@
 #ifndef _XML_DATABINDING_H_
 #define _XML_DATABINDING_H_
 
+template <typename RootType>
+struct data_binder<void, RootType, Element<RootType>> {
+    typedef Element<RootType> entity_type;
+
+    const std::string name;
+    const entity_type* elt;
+    RootType* data;
+
+    data_binder(const std::string& n, const entity_type* e)
+        : name(n), elt(e), data(new RootType())
+    {
+        debug_log << "Root data=" << data << debug_endl;
+    }
+
+    RootType* install(void* container) const
+    {
+        return const_cast<RootType*>(data);
+        (void)container;
+    }
+
+    void after(void* ptr, RootType* data) const
+    {
+        DEBUG;
+        (void)ptr; (void)data;
+    }
+};
+
+
 /* simple setter */
 template <typename StrucType, typename FieldType>
 struct data_binder<StrucType, FieldType StrucType::*, Element<FieldType>> {
     typedef Element<FieldType> entity_type;
 
-    std::string name;
+    const std::string name;
     FieldType StrucType::* target;
     const entity_type* elt;
 
@@ -20,11 +48,14 @@ struct data_binder<StrucType, FieldType StrucType::*, Element<FieldType>> {
 
     FieldType* install(StrucType* container) const
     {
-        return &container->*target;
+        return &(container->*target);
     }
 
-    void after(StrucType* ptr, FieldType data) const
-    { DEBUG; }
+    void after(StrucType* ptr, FieldType* data) const
+    {
+        DEBUG;
+        (void)ptr; (void)data;
+    }
 };
 
 
@@ -33,7 +64,7 @@ template <typename StrucType, typename FieldType>
 struct data_binder<StrucType, FieldType* StrucType::*, Element<FieldType>> {
     typedef Element<FieldType> entity_type;
 
-    std::string name;
+    const std::string name;
     FieldType* StrucType::* target;
     const entity_type* elt;
 
@@ -47,12 +78,18 @@ struct data_binder<StrucType, FieldType* StrucType::*, Element<FieldType>> {
 
     FieldType* install(StrucType* container) const
     {
+        DEBUG;
         container->*target = new FieldType();
+        debug_log << "container=" << container << " target=" << container->*target << debug_endl;
         return container->*target;
     }
 
-    void after(StrucType* container, FieldType data) const
-    { DEBUG; }
+    void after(StrucType* container, FieldType* data) const
+    {
+        DEBUG;
+        debug_log << "container=" << container << " target=" << container->*target << debug_endl;
+        (void)container; (void)data;
+    }
 };
 
 
@@ -61,24 +98,29 @@ template <typename EvalType, typename Manipulator>
 struct data_binder<EvalType, Manipulator, Element<Manipulator>> {
     typedef Element<Manipulator> entity_type;
 
-    std::string name;
+    const std::string name;
     const entity_type* elt;
 
     data_binder(const std::string& n, const entity_type* e)
         : name(n), elt(e)
-    { DEBUG; }
+    {
+        DEBUG;
+        debug_log << ((void*)this) << ' ' << name << debug_endl;
+    }
 
     data_binder(const data_binder<EvalType, Manipulator, Element<Manipulator>>& d)
         : name(d.name), elt(d.elt)
     { DEBUG; }
 
-    Manipulator* install(EvalType* container)
+    Manipulator* install(EvalType* container) const
     {
         return new Manipulator();
+        (void)container;
     }
 
-    void after(EvalType* container, Manipulator* data)
+    void after(EvalType* container, Manipulator* data) const
     {
+        DEBUG;
         (*data)(*container);
         delete data;
     }
@@ -90,7 +132,7 @@ template <typename EvalType>
 struct data_binder<EvalType, EvalType, Element<EvalType>> {
     typedef Element<EvalType> entity_type;
 
-    std::string name;
+    const std::string name;
     const entity_type* elt;
 
     data_binder(const std::string& n, const entity_type* e)
@@ -101,12 +143,12 @@ struct data_binder<EvalType, EvalType, Element<EvalType>> {
         : name(d.name), elt(d.elt)
     { DEBUG; }
 
-    EvalType* install(EvalType* container)
+    EvalType* install(EvalType* container) const
     {
         return container;
     }
 
-    void after(EvalType* container, EvalType* data)
+    void after(EvalType* container, EvalType* data) const
     { DEBUG; }
 };
 
@@ -114,7 +156,7 @@ struct data_binder<EvalType, EvalType, Element<EvalType>> {
 /* attribute and chardata eval_to binding */
 template <typename EvalType>
 struct data_binder<EvalType, EvalType, std::string> {
-    std::string name;
+    const std::string name;
     typedef std::string entity_type;
 
     data_binder(const std::string& n)
@@ -125,14 +167,16 @@ struct data_binder<EvalType, EvalType, std::string> {
         : name(d.name)
     { DEBUG; }
 
-    EvalType* install(EvalType* container)
+    EvalType* install(EvalType* container) const
     {
         return container;
     }
 
-    void after(EvalType* container, EvalType* data)
+    void after(EvalType* container, std::string* data) const
     {
+        DEBUG;
         from_string(*data, *container);
+        debug_log << "converted => " << (*container) << debug_endl;
     }
 };
 
@@ -140,7 +184,7 @@ struct data_binder<EvalType, EvalType, std::string> {
 /* attribute binding */
 template <typename StrucType, typename FieldType>
 struct data_binder<StrucType, FieldType StrucType::*, std::string> {
-    std::string name;
+    const std::string name;
     FieldType StrucType::* field;
     typedef std::string entity_type;
 
@@ -152,14 +196,16 @@ struct data_binder<StrucType, FieldType StrucType::*, std::string> {
         : name(d.name), field(d.field)
     { DEBUG; }
 
-    FieldType* install(StrucType* container)
+    FieldType* install(StrucType* container) const
     {
         return container->*field;
     }
 
-    void after(FieldType* ptr, std::string* data)
+    void after(FieldType* ptr, std::string* data) const
     {
+        DEBUG;
         from_string(*data, *ptr);
+        debug_log << "converted => " << (*ptr) << debug_endl;
     }
 };
 
@@ -190,6 +236,16 @@ A(const char* name, FieldType StrucType::* field)
 template <typename StrucType, typename FieldType>
 combination<single, elt_binding<StrucType, FieldType>>
 E(const Element<FieldType>& elt, FieldType StrucType::* field)
+{
+    return {
+        { &elt, field }
+    };
+}
+
+
+template <typename StrucType, typename FieldType>
+combination<single, elt_alloc_binding<StrucType, FieldType>>
+E(const Element<FieldType>& elt, FieldType* StrucType::* field)
 {
     return {
         { &elt, field }
@@ -229,8 +285,6 @@ OE(const Element<ManipulatorOrTransient>& elt)
     return { &elt };
 }
 
-
-#define CHARDATA_NAME "#CHARDATA"
 
 template <typename IntegralType>
 struct resolve_bindings_integral {
@@ -274,6 +328,7 @@ struct resolve_bindings_class {
         transform(const Element<ManipulatorOrTransient>* e)
         {
             DEBUG;
+            debug_log << e->name << debug_endl;
             return { e->name, e };
         }
 
@@ -297,11 +352,20 @@ struct resolve_bindings_class {
 
 
     /* simple setter */
-    /* simple setter with allocator */
     template <typename FieldType>
         static
         data_binder<StrucType, FieldType StrucType::*, Element<FieldType>>
         transform(const elt_binding<StrucType, FieldType>& eb)
+        {
+            DEBUG;
+            return { eb.elt->name, eb.field, eb.elt };
+        }
+
+    /* simple setter with allocator */
+    template <typename FieldType>
+        static
+        data_binder<StrucType, FieldType* StrucType::*, Element<FieldType>>
+        transform(const elt_alloc_binding<StrucType, FieldType>& eb)
         {
             DEBUG;
             return { eb.elt->name, eb.field, eb.elt };

@@ -3,9 +3,12 @@
 
 #include "structure.h"
 
+#define CHARDATA_NAME "#CHARDATA"
+
 template <typename EvalType> struct Element;
 template <typename ParentType, typename OutputType, typename EntityType> struct data_binder;
-template <typename EvalType> struct xml_parser;
+template <typename OutputType, typename kls, typename... Elements> struct iterator;
+template <typename EvalType> struct xml_context;
 
 template <typename EvalType>
 struct Entity {
@@ -47,6 +50,16 @@ template <typename StrucType, typename FieldType>
 struct elt_binding {
     typedef Element<FieldType> entity_type;
     typedef FieldType StrucType::* eval_type;
+
+    const entity_type* elt;
+    eval_type field;
+};
+
+
+template <typename StrucType, typename FieldType>
+struct elt_alloc_binding {
+    typedef Element<FieldType> entity_type;
+    typedef FieldType* StrucType::* eval_type;
 
     const entity_type* elt;
     eval_type field;

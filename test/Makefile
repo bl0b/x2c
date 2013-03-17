@@ -1,7 +1,7 @@
 CXX=g++-4.8
 CXXARGS=--std=gnu++0x -Wall
 
-INC=-I../include
+INC=-I../include -I/usr/include/libxml++-2.6 -I/usr/include/glibmm-2.4
 
 C=$(CXX) $(CXXARGS) $(INC)
 
@@ -20,7 +20,7 @@ sandbox: sandbox.cc
 	$C $< -o $@ -ggdb
 
 xml_sandbox: xml_sandbox.cc 
-	$C $< -o $@ -ggdb
+	$C $< -o $@ -lexpat -ggdb
 
 sandbox-prof: sandbox.cc 
 	$C $< -o $@ -pg -ggdb
