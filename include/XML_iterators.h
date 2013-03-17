@@ -421,7 +421,7 @@ struct iterator<OutputType, ordered_sequence, Elements...>
         current = cur.current;
         state = cur.state;
         next = cur.next;
-        std::cerr << '<' << current << ' ' << state << ' ' << next << '>' << std::endl;
+        /*std::cerr << '<' << current << ' ' << state << ' ' << next << '>' << std::endl;*/
         return state;
     }
 
