@@ -255,6 +255,52 @@ struct data_binder<StrucType, FieldType StrucType::*, std::string> {
 
 
 
+/* container::value_type binding */
+template <typename StrucType, typename FieldType>
+struct data_binder<StrucType, FieldType StrucType::*, Element<typename FieldType::value_type>> {
+    typedef typename FieldType::value_type value_type;
+    typedef Element<value_type> entity_type;
+
+    const std::string name;
+    FieldType StrucType::* coll;
+    std::function<void(const value_type&)> adder;
+
+    template <typename Function>
+    data_binder(const std::string& n, FieldType StrucType::* f, Function FieldType::* a)
+        : name(n), coll(f), adder()
+    {
+        DEBUG;
+        adder = [a] (FieldType* f, const value_type& v) { f->*a(v); };
+    }
+
+    data_binder(const data_binder<StrucType, FieldType StrucType::*, std::string>& d)
+        : name(d.name), coll(d.field), adder()
+    {
+        DEBUG;
+        adder = d.adder;
+    }
+
+    FieldType* install(StrucType* container) const
+    {
+        return new value_type();
+    }
+
+    void after(FieldType* ptr, value_type* data) const
+    {
+        DEBUG;
+        adder(ptr, *data);
+        delete data;
+    }
+
+    void rollback(FieldType*& ptr) const
+    {
+        std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << std::endl;
+        delete ptr;
+    }
+};
+
+
+
 
 inline
 combination<single, CharData>
@@ -297,34 +343,32 @@ E(const Element<FieldType>& elt, FieldType* StrucType::* field)
 }
 
 
-template <typename ManipulatorOrTransient>
-combination<single, const Element<ManipulatorOrTransient>*>
-E(const Element<ManipulatorOrTransient>& elt)
-{
-    return { &elt };
-}
-
-template <typename StrucType, typename FieldType>
-combination<optional<single>, attr_binding<StrucType, FieldType>>
-OA(const char* name, FieldType StrucType::* field)
-{
-    return { { name, field } };
-}
+template <typename CollType, typename Function>
+struct ContainerManipulator {
+    Function CollType::* adder;
+    void operator () (CollType& container, const CollType::value_type& value)
+    {
+        container.*adder(value);
+    }
+};
 
 
-template <typename StrucType, typename FieldType>
-combination<optional<single>, elt_binding<StrucType, FieldType>>
-OE(const Element<FieldType>& elt, FieldType StrucType::* field)
+template <typename StrucType, class CollType, typename Function>
+typename std::enable_if<
+    is_container<CollType>::value,
+    combination<multiple, elt_binding<StrucType, CollType, Function>>
+>::type
+E(const Element<typename CollType::value_type>& elt, CollType StrucType::* field, Function CollType::* insert)
 {
     return {
-        { &elt, field }
+        { &elt, field, insert }
     };
 }
 
 
 template <typename ManipulatorOrTransient>
-combination<optional<single>, const Element<ManipulatorOrTransient>*>
-OE(const Element<ManipulatorOrTransient>& elt)
+combination<single, const Element<ManipulatorOrTransient>*>
+E(const Element<ManipulatorOrTransient>& elt)
 {
     return { &elt };
 }
@@ -423,6 +467,16 @@ struct resolve_bindings_class {
         {
             DEBUG;
             return { ab.name, ab.field };
+        }
+
+    /* simple setter */
+        template <class CollType, typename Function>
+        static
+        data_binder<StrucType, CollType StrucType::*, Element<typename CollType::value_type>>
+        transform(const elt_coll_binding<StrucType, CollType, Function>& eb)
+        {
+            DEBUG;
+            return { eb.elt->name, eb.field, eb.elt, eb.insert };
         }
 };
 

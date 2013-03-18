@@ -55,6 +55,16 @@ struct elt_binding {
     eval_type field;
 };
 
+template <typename StrucType, typename CollType, typename Function>
+struct elt_coll_binding {
+    typedef CollType collection_type;
+    typedef typename collection_type::value_type value_type;
+    typedef Element<value_type> entity_type;
+
+    const entity_type* elt;
+    collection_type StrucType::* field;
+    Function collection_type::* insert;
+};
 
 template <typename StrucType, typename FieldType>
 struct elt_alloc_binding {
@@ -71,6 +81,17 @@ static void from_string(const std::string& s, OutputType& o)
 {
     std::stringstream(s) >> o;
 }
+
+
+
+template<typename T>
+    struct is_container {
+    private:
+        template<typename C> static char test(typename C::value_type*);
+        template<typename C> static int  test(...);
+    public:
+        static const bool value = sizeof(test<T>(0)) == sizeof(char);
+    };
 
 #endif
 

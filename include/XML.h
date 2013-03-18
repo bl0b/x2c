@@ -1,6 +1,7 @@
 #ifndef _XML_BIND_H_
 #define _XML_BIND_H_
 
+#include <fstream>
 #include <sstream>
 #include <expat.h>
 #include <exception>

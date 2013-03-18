@@ -1,53 +1,48 @@
-CXX=g++-4.8
-CXXARGS=--std=gnu++0x -Wall
-COV=gcov-4.8
+include Makevars
 
-INC=-I../include -I/usr/include/libxml++-2.6 -I/usr/include/glibmm-2.4
+SRC=test_main.cc test_structure.cc test_idioms.cc test_xml_structure.cc test_input.cc test_iterators.cc
+OBJ=$(subst .cc,.o,$(SRC))
+COV_OBJ=$(subst .cc,.cov.o,$(SRC))
 
-C=$(CXX) $(CXXARGS) $(INC)
+COV_OPTS=-g -fprofile-arcs -ftest-coverage
+COV_OPTS=-gdwarf-2 -gstrict-dwarf -fprofile-arcs -ftest-coverage
 
-TARGETS=sandbox sandbox-prof sandbox-opt sandbox-opt-prof
+INFO_FILE=test-coverage.info
 
-#all: $(TARGETS)
-all: test
+all:  test
+
+dump:
+	@echo $(SRC)
+	@echo $(OBJ)
+	@echo $(COV_OBJ)
 
 include .depend
 
-.depend: sandbox.cc xml_sandbox.cc
-	$C --depend sandbox.cc | sed 's/^sandbox\.o:/$(TARGETS):/' > $@
-	$C --depend xml_sandbox.cc | sed 's/^xml_sandbox\.o:/xml_sandbox:/' >> $@
-	$C --depend xml_test.cc | sed 's/^xml_test\.o:/xml_test xml_text-ndebug:/' >> $@
+.depend: $(SRC)
+	$C --depend $(SRC) > $@
 
 test: xml_test-ndebug
 	./$<
 
 test-coverage: xml_test
-	$(COV) -p xml_test.cc
 	lcov --zerocounters --directory .
 	./$< | tail -3
-	lcov --gcov-tool $(COV) --no-checksum --directory . --capture --output-file test-coverage.info
-	genhtml --highlight --legend --output-directory TestCodeCoverage test-coverage.info
+	lcov --gcov-tool $(COV) --no-checksum --directory . --capture --output-file $(INFO_FILE)
+	lcov --remove $(INFO_FILE) "/usr*" -o $(INFO_FILE)
+	lcov --remove $(INFO_FILE) "catch.hpp" -o $(INFO_FILE)
+	genhtml --highlight --legend --output-directory TestCodeCoverage $(INFO_FILE)
 
-xml_test-ndebug: xml_test.cc
-	$C $< -o $@ -DNDEBUG -ggdb -lexpat
+xml_test-ndebug: $(OBJ)
+	$(LD) $(OBJ) $(LIBS) -o $@
 
-xml_test: xml_test.cc
-	$C $< -ggdb -fprofile-arcs -ftest-coverage -o $@ -lexpat
+$(OBJ):%.o: %.cc
+	$C -c $< -o $@ -DNDEBUG -g
 
-sandbox: sandbox.cc 
-	$C $< -o $@ -ggdb
+xml_test: $(SRC)
+	$(C) $(SRC) $(COV_OPTS) $(LIBS) -o $@
 
-xml_sandbox: xml_sandbox.cc 
-	$C $< -o $@ -lexpat -ggdb
-
-sandbox-prof: sandbox.cc 
-	$C $< -o $@ -pg -ggdb
-
-sandbox-opt: sandbox.cc 
-	$C $< -o $@ -O3 -DNDEBUG
-
-sandbox-opt-prof: sandbox.cc 
-	$C $< -o $@ -pg -O3 -DNDEBUG
+#$(COV_OBJ):%.cov.o: %.cc
+#	$C -c $< -o $@ $(COV_OPTS)
 
 clean:
-	rm -f sandbox-* sandbox .depend xml_sandbox xml_test xml_test-ndebug
+	rm -f .depend xml_test xml_test-ndebug *.o

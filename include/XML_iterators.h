@@ -15,16 +15,17 @@ template <typename OutputType>
 struct iterator_base {
     bool state : 1;
     bool next : 1;
+    bool done : 1;
 
-    iterator_base(bool s) : state(s), next(true) {}
+    iterator_base(bool s) : state(s), next(true), done(false) {}
     virtual ~iterator_base() {}
 
     virtual bool accept(const std::string& name) = 0;
     virtual bool consume(const std::string& name, xml_context<OutputType>* context) = 0;
 
     bool is_good() const { return state; }
-    bool is_accepting() const { return next; }
-    virtual bool is_done() const { return state && !next; }
+    virtual bool is_accepting() const { return next; }
+    virtual bool is_done() const { return done; }
 };
 
 
@@ -46,13 +47,14 @@ template <typename OutputType, typename SubOutputType, typename EntityType>
 struct iterator<OutputType, single, data_binder<OutputType, SubOutputType, EntityType>> : public iterator_base<OutputType> {
     using iterator_base<OutputType>::state;
     using iterator_base<OutputType>::next;
+    using iterator_base<OutputType>::done;
 
     data_binder<OutputType, SubOutputType, EntityType> binder;
 
     iterator(const combination<single, data_binder<OutputType, SubOutputType, EntityType>>& comb)
         : iterator_base<OutputType>(false), binder(std::get<0>(comb))
     {
-        debug_log << "ITERATOR on " << binder.name << debug_endl;
+        /*debug_log << "ITERATOR on " << binder.name << debug_endl;*/
     }
 
     bool accept(const std::string& name)
@@ -64,6 +66,7 @@ struct iterator<OutputType, single, data_binder<OutputType, SubOutputType, Entit
     {
         DEBUG;
         state = accept(name);
+        done |= state;
         if (state && context) {
             context->install(binder);
         }
@@ -77,18 +80,19 @@ template <typename OutputType, typename SubOutputType>
 struct iterator<OutputType, single, data_binder<OutputType, SubOutputType, std::string>> : public iterator_base<OutputType> {
     using iterator_base<OutputType>::state;
     using iterator_base<OutputType>::next;
+    using iterator_base<OutputType>::done;
 
     data_binder<OutputType, SubOutputType, std::string> binder;
 
     iterator(const combination<single, data_binder<OutputType, SubOutputType, std::string>>& comb)
         : iterator_base<OutputType>(false), binder(std::get<0>(comb))
     {
-        debug_log << "ITERATOR on " << binder.name << debug_endl;
+        /*debug_log << "ITERATOR on " << binder.name << debug_endl;*/
     }
 
     bool accept(const std::string& name)
     {
-        debug_log << "accept? " << name << " vs " << binder.name << ", next=" << next << debug_endl;
+        /*debug_log << "accept? " << name << " vs " << binder.name << ", next=" << next << debug_endl;*/
         return next && name == binder.name;
     }
 
@@ -96,10 +100,11 @@ struct iterator<OutputType, single, data_binder<OutputType, SubOutputType, std::
     {
         DEBUG;
         state = accept(name);
-        debug_log << "state=" << state << debug_endl;
+        /*debug_log << "state=" << state << debug_endl;*/
         if (state && context) {
             context->install(binder);
         }
+        done |= state;
         next = false;
         return state;
     }
@@ -110,13 +115,14 @@ template <typename OutputType, typename SubOutputType, typename EntityType>
 struct iterator<OutputType, multiple, data_binder<OutputType, SubOutputType, EntityType>> : public iterator_base<OutputType> {
     using iterator_base<OutputType>::state;
     using iterator_base<OutputType>::next;
+    using iterator_base<OutputType>::done;
 
     data_binder<OutputType, SubOutputType, EntityType> binder;
 
     iterator(const combination<multiple, data_binder<OutputType, SubOutputType, EntityType>>& comb)
         : iterator_base<OutputType>(false), binder(std::get<0>(comb))
     {
-        debug_log << "ITERATOR on " << binder.name << debug_endl;
+        /*debug_log << "ITERATOR on " << binder.name << debug_endl;*/
     }
 
     bool accept(const std::string& name)
@@ -130,16 +136,15 @@ struct iterator<OutputType, multiple, data_binder<OutputType, SubOutputType, Ent
         if (state && context) {
             context->install(binder);
         }
-        if (state) {
-            std::cerr << "[[" << typeid(binder).name() << "]]";
-        } else {
-            std::cerr << "[[FAILED]]";
-        }
+        /*if (state) {*/
+            /*std::cerr << "[[" << typeid(binder).name() << "]]";*/
+        /*} else {*/
+            /*std::cerr << "[[FAILED]]";*/
+        /*}*/
+        done |= state;
         next = state;
         return state;
     }
-
-    bool is_done() const { return state; }
 };
 
 
@@ -147,12 +152,12 @@ template <typename OutputType, typename kls, typename SubOutputType, typename En
 struct iterator<OutputType, optional<kls>, data_binder<OutputType, SubOutputType, EntityType>>
 : public iterator<OutputType, kls, data_binder<OutputType, SubOutputType, EntityType>> {
     using iterator<OutputType, kls, data_binder<OutputType, SubOutputType, EntityType>>::state;
+    using iterator<OutputType, kls, data_binder<OutputType, SubOutputType, EntityType>>::next;
+    using iterator<OutputType, kls, data_binder<OutputType, SubOutputType, EntityType>>::done;
 
     iterator(const combination<optional<kls>, data_binder<OutputType, SubOutputType, EntityType>>& ent)
         : iterator<OutputType, kls, data_binder<OutputType, SubOutputType, EntityType>>(ent)
-    { state = true; }
-
-    bool is_done() const { return true; }
+    { state = true; done = true; }
 };
 
 
@@ -161,14 +166,32 @@ namespace detail {
     struct init_next_any {
         bool ret;
         template <typename Iterator>
-            void operator () (Iterator& i) { ret |= i.next; }
+            void operator () (Iterator& i) { ret |= i.is_accepting(); }
     };
 
     struct accept_any {
-        const std::string& name;
+        const std::string name;
         bool ret;
         template <typename Iterator>
             void operator () (Iterator& i) { ret |= i.accept(name); }
+    };
+
+    template <typename OutputType>
+    struct consume_first_safe {
+        const std::string name;
+        bool state;
+        bool next;
+        bool next_any;
+        xml_context<OutputType>* context;
+        template <typename kls, typename... Elements>
+            void operator () (iterator<OutputType, kls, Elements...>& i)
+            {
+                if (!state && i.accept(name)) {
+                    state = i.consume(name, context);
+                    next = i.is_accepting();
+                }
+                next_any |= i.is_accepting();
+            }
     };
 
     template <typename OutputType>
@@ -182,7 +205,10 @@ namespace detail {
             {
                 if (!state) {
                     state = i.consume(name, context);
-                    next = i.next;
+                    next = i.is_accepting();
+                } else {
+                    /* make sure all subsequent iterators are invalidated */
+                    i.consume("", NULL);
                 }
             }
     };
@@ -202,12 +228,17 @@ namespace detail {
     struct accept_current {
         const std::string& name;
         size_t current;
+        size_t last;
         bool ret;
         template <typename Iterator>
             void operator () (size_t index, Iterator& i)
             {
+                /*std::cerr << std::endl << "accepting '" << name << "' index=" << index << " current=" << current << " last=" << last << " i.is_done()=" << i.is_done() << " ret=" << ret << std::endl;*/
                 if (index == current) {
                     ret = i.accept(name);
+                    if (!ret && i.is_done() && current < last) {
+                        ++current;
+                    }
                 }
             }
     };
@@ -226,7 +257,7 @@ namespace detail {
                 if (index == current) {
                     if (i.accept(name)) {
                         state = i.consume(name, context);
-                        next = i.next;
+                        next = i.is_accepting();
                     } else if (i.is_done() && current < last) {
                         ++current;
                     } else {
@@ -335,11 +366,18 @@ struct iterator<OutputType, unordered_sequence, Elements...>
 
     bool consume(const std::string& name, xml_context<OutputType>* context)
     {
-        detail::consume_first<OutputType> first { name, false, false, context };
+        detail::consume_first_safe<OutputType> first { name, false, false, false, context };
         iterate_over_tuple(first, contents);
         state = first.state;
-        next = first.next;
+        next = first.next_any;
         return state;
+    }
+
+    bool is_accepting() const
+    {
+        detail::init_next_any any { false };
+        iterate_over_tuple(any, contents);
+        return any.ret;
     }
 
     bool is_done() const
@@ -409,8 +447,9 @@ struct iterator<OutputType, ordered_sequence, Elements...>
 
     bool accept(const std::string& name)
     {
-        detail::accept_current cur { name, current, false };
+        detail::accept_current cur { name, current, std::tuple_size<decltype(contents)>::value - 1, false };
         iterate_over_tuple_with_index(cur, contents);
+        current = cur.current;
         return cur.ret;
     }
 
