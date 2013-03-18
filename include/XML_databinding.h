@@ -263,36 +263,33 @@ struct data_binder<StrucType, FieldType StrucType::*, Element<typename FieldType
 
     const std::string name;
     FieldType StrucType::* coll;
-    std::function<void(const value_type&)> adder;
+    const entity_type* elt;
 
-    template <typename Function>
-    data_binder(const std::string& n, FieldType StrucType::* f, Function FieldType::* a)
-        : name(n), coll(f), adder()
+    data_binder(const std::string& n, FieldType StrucType::* f, const entity_type* e)
+        : name(n), coll(f), elt(e)
     {
         DEBUG;
-        adder = [a] (FieldType* f, const value_type& v) { f->*a(v); };
     }
 
     data_binder(const data_binder<StrucType, FieldType StrucType::*, std::string>& d)
-        : name(d.name), coll(d.field), adder()
+        : name(d.name), coll(d.field)
     {
         DEBUG;
-        adder = d.adder;
     }
 
-    FieldType* install(StrucType* container) const
+    value_type* install(StrucType* container) const
     {
         return new value_type();
     }
 
-    void after(FieldType* ptr, value_type* data) const
+    void after(StrucType* ptr, value_type* data) const
     {
         DEBUG;
-        adder(ptr, *data);
+        select_insertion_method<FieldType>::add(ptr->*coll, *data);
         delete data;
     }
 
-    void rollback(FieldType*& ptr) const
+    void rollback(value_type*& ptr) const
     {
         std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << std::endl;
         delete ptr;
@@ -343,25 +340,15 @@ E(const Element<FieldType>& elt, FieldType* StrucType::* field)
 }
 
 
-template <typename CollType, typename Function>
-struct ContainerManipulator {
-    Function CollType::* adder;
-    void operator () (CollType& container, const CollType::value_type& value)
-    {
-        container.*adder(value);
-    }
-};
-
-
-template <typename StrucType, class CollType, typename Function>
+template <typename StrucType, class CollType>
 typename std::enable_if<
     is_container<CollType>::value,
-    combination<multiple, elt_binding<StrucType, CollType, Function>>
+    combination<multiple, elt_coll_binding<StrucType, CollType>>
 >::type
-E(const Element<typename CollType::value_type>& elt, CollType StrucType::* field, Function CollType::* insert)
+E(const Element<typename CollType::value_type>& elt, CollType StrucType::* field)
 {
     return {
-        { &elt, field, insert }
+        { &elt, field }
     };
 }
 
@@ -470,13 +457,13 @@ struct resolve_bindings_class {
         }
 
     /* simple setter */
-        template <class CollType, typename Function>
+        template <class CollType>
         static
         data_binder<StrucType, CollType StrucType::*, Element<typename CollType::value_type>>
-        transform(const elt_coll_binding<StrucType, CollType, Function>& eb)
+        transform(const elt_coll_binding<StrucType, CollType>& eb)
         {
             DEBUG;
-            return { eb.elt->name, eb.field, eb.elt, eb.insert };
+            return { eb.elt->name, eb.field, eb.elt };
         }
 };
 

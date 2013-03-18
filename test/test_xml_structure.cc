@@ -1,5 +1,6 @@
 #include "catch.hpp"
 #include "XML.h"
+#include <map>
 
 TEST_CASE( "structure 1.1", "Ordered sequence of 2" )
 {
@@ -176,7 +177,7 @@ TEST_CASE( "container class binding.1", "push into vector" )
     DTD_START(vec, x, X)
         ELEMENT(item, int);
         item = A("value");
-        x = E(item, &X::v, (void (std::vector<int>::*) (const int&)) &std::vector<int>::push_back);
+        x = E(item, &X::v);
     DTD_END(vec);
 
     std::stringstream iss(R"(<x><item value="23"/><item value="42"/><item value="6106"/></x>)");
@@ -186,6 +187,28 @@ TEST_CASE( "container class binding.1", "push into vector" )
     CHECK(output->v[0] == 23);
     CHECK(output->v[1] == 42);
     CHECK(output->v[2] == 6106);
+    delete output;
+}
+
+TEST_CASE( "container class binding.2", "push into map" )
+{
+    struct X {
+        std::map<std::string, int> v;
+        typedef std::map<std::string, int>::value_type value_type;
+    };
+    DTD_START(vec, x, X)
+        ELEMENT(item, X::value_type);
+        item = A("key", const_cast<std::string X::value_type::*>(&X::value_type::first)) & A("value", &X::value_type::second);
+        x = E(item, &X::v);
+    DTD_END(vec);
+
+    std::stringstream iss(R"(<x><item key="a" value="23"/><item key="b" value="42"/><item key="c" value="6106"/></x>)");
+    X* output = vec.parse(iss);
+    REQUIRE(output != (void*)0);
+    REQUIRE(output->v.size() == 3);
+    CHECK(output->v["a"] == 23);
+    CHECK(output->v["b"] == 42);
+    CHECK(output->v["c"] == 6106);
     delete output;
 }
 

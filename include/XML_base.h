@@ -55,7 +55,7 @@ struct elt_binding {
     eval_type field;
 };
 
-template <typename StrucType, typename CollType, typename Function>
+template <typename StrucType, typename CollType>
 struct elt_coll_binding {
     typedef CollType collection_type;
     typedef typename collection_type::value_type value_type;
@@ -63,7 +63,6 @@ struct elt_coll_binding {
 
     const entity_type* elt;
     collection_type StrucType::* field;
-    Function collection_type::* insert;
 };
 
 template <typename StrucType, typename FieldType>
@@ -82,6 +81,44 @@ static void from_string(const std::string& s, OutputType& o)
     std::stringstream(s) >> o;
 }
 
+
+#define HAS_MEM_FUNC(func, name)                                        \
+    template<typename T, typename Sign>                                 \
+    struct name {                                                       \
+        typedef char yes[1];                                            \
+        typedef char no [2];                                            \
+        template <typename U, U> struct type_check;                     \
+        template <typename _1> static yes &chk(type_check<Sign, &_1::func> *); \
+        template <typename   > static no  &chk(...);                    \
+        static bool const value = sizeof(chk<T>(0)) == sizeof(yes);     \
+    }
+
+HAS_MEM_FUNC(push_back, has_push_back);
+
+template <typename T>
+    struct select_insertion_method {
+        struct with_insert {
+            template <typename C>
+                static void add(C& c, const typename C::value_type& v)
+                { c.insert(v); }
+        };
+
+        struct with_push_back {
+            template <typename C>
+                static void add(C& c, const typename C::value_type& v)
+                { c.push_back(v); }
+        };
+
+        typedef typename std::conditional<
+            has_push_back<T, void (T::*) (const typename T::value_type&)>::value,
+            with_push_back,
+            with_insert>::type _;
+
+        static void add(T& container, const typename T::value_type& v)
+        {
+            _::add(container, v);
+        }
+    };
 
 
 template<typename T>
