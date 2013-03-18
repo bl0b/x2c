@@ -1,0 +1,10 @@
+CXX=g++-4.8
+CXXARGS=--std=gnu++0x -Wall
+COV=gcov-4.8
+
+INC=-I$(ROOT_DIR)../include
+
+C=$(CXX) $(CXXARGS) $(INC)
+
+LD=$(CXX)
+LIBS=-lexpat
