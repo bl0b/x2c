@@ -51,6 +51,16 @@ struct xml_context_impl {
     virtual bool consume_chardata(const std::string& value) = 0;
     virtual bool consume_element(const std::string& name) = 0;
     virtual void finish() = 0;
+
+    void error() const
+    {
+        xml_exception e(parser);
+        std::cerr << "Error: " << e.what() << std::endl;
+        /*if (rollback) {*/
+            /*rollback();*/
+        /*}*/
+        throw e;
+    }
 };
 
 
@@ -89,7 +99,7 @@ template <typename EvalType>
             rollback = [binder, this] ()
             {
                 std::cerr << this << " ROLLBACK" << std::endl;
-                binder.rollback(data);
+                binder.rollback(&data);
                 after = [] () {};
             };
 
@@ -158,7 +168,7 @@ template <typename EvalType>
 
 
                 } else {
-                    /* ERROR */
+                    error();
                 }
             }
 
@@ -167,7 +177,7 @@ template <typename EvalType>
             {
                 DEBUG;
                 if (on_element) {
-                    /* ERROR */
+                    error();
                 }
                 binder.after(binder.install(data), &text);
             }
@@ -203,7 +213,12 @@ struct XMLReader {
         data_binder<void, _root<EvalType>, Element<_root<EvalType>>> root_binding("", &pseudo_root);
         xml_context<_root<EvalType>>* context = new xml_context<_root<EvalType>>(parser, static_cast<xml_context<void>*>(nullptr), root_binding);
         XML_SetUserData(parser, static_cast<void*>(context));
-        parse(is);
+        try {
+            parse(is);
+        } catch(xml_exception& e) {
+            rollback();
+            throw e;
+        }
         EvalType* ret = context->data->ptr;
         delete context->data;
         delete context;
@@ -219,7 +234,7 @@ struct XMLReader {
             std::string value(*attributes++);
             ok = ctx->consume_attribute(key, value);
             if (!ok) {
-                /* ERROR */
+                ctx->error();
             }
         }
         return ok;
@@ -243,8 +258,7 @@ struct XMLReader {
             void *buff = XML_GetBuffer(parser, BUFF_SIZE);
             is.read((char*) buff, BUFF_SIZE);
             if (!XML_ParseBuffer(parser, is.gcount(), is.eof())) {
-                rollback();
-                throw xml_exception(parser);
+                static_cast<xml_context_impl*>(XML_GetUserData(parser))->error();
             }
         }
     }
@@ -259,10 +273,10 @@ struct XMLReader {
         debug_log << "start " << name << debug_endl;
         xml_context_impl* context = static_cast<xml_context_impl*>(userData);
         if (!context->consume_element(name)) {
-            /* ERROR */
+            context->error();
         }
         if (!eat_attributes(context->parser, attrs)) {
-            /* ERROR */
+            context->error();
         }
         /*static_cast<XMLReader*>(userData)->_start(name, attrs);*/
     }

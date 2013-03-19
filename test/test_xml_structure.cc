@@ -212,3 +212,34 @@ TEST_CASE( "container class binding.2", "push into map" )
     delete output;
 }
 
+TEST_CASE( "recursion.1", "recursive container" )
+{
+    struct Node {
+        Node* left;
+        Node* right;
+        int value;
+        Node() : left(0), right(0), value(0) {}
+        ~Node() { if (left) delete left; if (right) delete right; }
+    };
+
+    DTD_START(tree, node, Node)
+        node = A("value", &Node::value) & make_optional(E(node, &Node::left)) & make_optional(E(node, &Node::right));
+    DTD_END(tree);
+
+    std::stringstream iss(R"(<node value="2"><node value="1"/><node value="3"/></node>)");
+
+    Node* output = tree.parse(iss);
+
+    REQUIRE(output != (void*)0);
+    CHECK(output->value == 2);
+    REQUIRE(output->left != (void*)0);
+    CHECK(output->left->value == 1);
+    CHECK(output->left->left == (void*)0);
+    CHECK(output->left->right == (void*)0);
+    REQUIRE(output->right != (void*)0);
+    CHECK(output->right->value == 3);
+    CHECK(output->right->left == (void*)0);
+    CHECK(output->right->right == (void*)0);
+    delete output;
+}
+

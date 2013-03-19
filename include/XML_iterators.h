@@ -32,8 +32,9 @@ struct iterator_base {
 template <typename OutputType>
 struct iterator_empty : public iterator_base<OutputType> {
     using iterator_base<OutputType>::next;
+    using iterator_base<OutputType>::done;
 
-    iterator_empty() : iterator_base<OutputType>(true) { next = false; }
+    iterator_empty() : iterator_base<OutputType>(true) { next = false; done = true; }
     bool accept(const std::string& name) { return false; (void)name; }
     bool consume(const std::string& name, xml_context<OutputType>* context) { return false; (void)name; (void)context; }
 };

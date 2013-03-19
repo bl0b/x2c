@@ -12,13 +12,25 @@ struct data_binder<dummy, dummy, void> {
 
     dummy* install(dummy*) const { return NULL; }
     void after(dummy*, dummy*) const {}
-    void rollback(dummy*) const {}
+    void rollback(dummy**) const {}
 };
 
 data_binder<dummy, dummy, void> B(const std::string& name) { return { name, NULL }; }
 
 template <typename X>
 iterator_base<dummy>* I(const X& x) { return make_iterator<dummy>(x); }
+
+
+TEST_CASE( "iterators behaviour.0", "empty" )
+{
+    auto i = new iterator_empty<int>();
+    CHECK(i->is_good());
+    CHECK(i->is_done());
+    CHECK(!i->is_accepting());
+    CHECK(!i->accept("foobar"));
+    CHECK(!i->consume("foobar", NULL));
+    delete i;
+}
 
 
 TEST_CASE( "iterators behaviour.1", "single" )

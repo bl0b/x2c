@@ -24,11 +24,12 @@ struct data_binder<void, RootType, Element<RootType>> {
         (void)ptr; (void)data;
     }
 
-    void rollback(RootType*& ptr) const
+    void rollback(RootType** ptr) const
     {
-        std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << std::endl;
-        delete ptr;
-        ptr = NULL;
+        std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << ptr << ' ' << (*ptr) << std::endl;
+        delete *ptr;
+        *ptr = nullptr;
+        std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << ptr << ' ' << (*ptr) << std::endl;
     }
 };
 
@@ -62,9 +63,9 @@ struct data_binder<StrucType, FieldType StrucType::*, Element<FieldType>> {
         (void)ptr; (void)data;
     }
 
-    void rollback(FieldType*& ptr) const
+    void rollback(FieldType** ptr) const
     {
-        std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << std::endl;
+        std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << ptr << ' ' << (*ptr) << std::endl;
         (void)ptr;
     }
 };
@@ -90,23 +91,23 @@ struct data_binder<StrucType, FieldType* StrucType::*, Element<FieldType>> {
     FieldType* install(StrucType* container) const
     {
         DEBUG;
-        container->*target = new FieldType();
         debug_log << "container=" << container << " target=" << container->*target << debug_endl;
-        return container->*target;
+        return new FieldType();
     }
 
     void after(StrucType* container, FieldType* data) const
     {
         DEBUG;
         debug_log << "container=" << container << " \"" << elt->name << "\" target=" << container->*target << debug_endl;
-        (void)container; (void)data;
+        container->*target = data;
     }
 
-    void rollback(FieldType*& ptr) const
+    void rollback(FieldType** ptr) const
     {
-        std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << std::endl;
-        delete ptr;
-        ptr = nullptr;
+        std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << ptr << ' ' << (*ptr) << std::endl;
+        delete *ptr;
+        *ptr = nullptr;
+        std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << ptr << ' ' << (*ptr) << std::endl;
     }
 };
 
@@ -144,11 +145,12 @@ struct data_binder<EvalType, Manipulator, Element<Manipulator>> {
         delete data;
     }
 
-    void rollback(Manipulator*& ptr) const
+    void rollback(Manipulator** ptr) const
     {
-        std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << std::endl;
-        delete ptr;
-        ptr = NULL;
+        std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << ptr << ' ' << (*ptr) << std::endl;
+        delete *ptr;
+        *ptr = nullptr;
+        std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << ptr << ' ' << (*ptr) << std::endl;
     }
 };
 
@@ -177,9 +179,9 @@ struct data_binder<EvalType, EvalType, Element<EvalType>> {
     void after(EvalType* container, EvalType* data) const
     { DEBUG; }
 
-    void rollback(EvalType*& ptr) const
+    void rollback(EvalType** ptr) const
     {
-        std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << std::endl;
+        std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << ptr << ' ' << (*ptr) << std::endl;
         (void)ptr;
     }
 };
@@ -211,9 +213,9 @@ struct data_binder<EvalType, EvalType, std::string> {
         debug_log << "converted => " << (*container) << debug_endl;
     }
 
-    void rollback(EvalType*& ptr) const
+    void rollback(EvalType** ptr) const
     {
-        std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << std::endl;
+        std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << ptr << ' ' << (*ptr) << std::endl;
         (void)ptr;
     }
 };
@@ -246,9 +248,9 @@ struct data_binder<StrucType, FieldType StrucType::*, std::string> {
         debug_log << "converted => " << (*ptr) << debug_endl;
     }
 
-    void rollback(FieldType*& ptr) const
+    void rollback(FieldType** ptr) const
     {
-        std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << std::endl;
+        std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << ptr << ' ' << (*ptr) << std::endl;
         (void)ptr;
     }
 };
@@ -289,10 +291,12 @@ struct data_binder<StrucType, FieldType StrucType::*, Element<typename FieldType
         delete data;
     }
 
-    void rollback(value_type*& ptr) const
+    void rollback(value_type** ptr) const
     {
-        std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << std::endl;
-        delete ptr;
+        std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << ptr << ' ' << (*ptr) << std::endl;
+        delete *ptr;
+        *ptr = nullptr;
+        std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << ptr << ' ' << (*ptr) << std::endl;
     }
 };
 
