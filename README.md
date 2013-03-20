@@ -57,7 +57,7 @@ $ make install   # if you skipped the 2nd step, it will perform it for you.
 ##Usage
 
 ```C++
-#include <x2c/XML.h>
+#include <x2c/x2c.h>
 ```
 
 The API comes with macros to make your life easier. I'll demonstrate how to use X2C with and without them.
