@@ -21,8 +21,10 @@ include .depend
 .depend: $(SRC)
 	$C --depend $(SRC) > $@
 
-test: xml_test-ndebug
-	./$<
+test: .test-OK
+
+.test-OK: xml_test-ndebug
+	./$< && touch $@ || rm -f $@
 
 test-coverage: xml_test
 	lcov --zerocounters --directory .

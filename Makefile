@@ -11,6 +11,6 @@ test-coverage:
 clean:
 	cd test && make clean
 
-install: test
+install: .test
 	mkdir -p $(INSTALL_DIR)
 	cp -av include/*.h $(INSTALL_DIR)
