@@ -1,5 +1,8 @@
 #include "catch.hpp"
-#include "XML.h"
+#include "x2c.h"
+
+using namespace x2c;
+
 
 struct dummy {};
 

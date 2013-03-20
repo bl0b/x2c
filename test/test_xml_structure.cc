@@ -1,6 +1,8 @@
 #include "catch.hpp"
-#include "XML.h"
+#include "x2c.h"
 #include <map>
+
+using namespace x2c;
 
 TEST_CASE( "structure 1.1", "Ordered sequence of 2" )
 {

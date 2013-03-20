@@ -1,3 +1,10 @@
+/*
+ *  Distributed under the Boost Software License, Version 1.0. (See accompanying
+ *  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ */
+#ifndef _X2C_STRUCTURE_H_
+#define _X2C_STRUCTURE_H_
+
 #include "base.h"
 #include "iter_tuple.h"
 #include <type_traits>
@@ -5,6 +12,8 @@
 #include <iostream>
 
 #include <cxxabi.h>
+
+namespace x2c {
 
 inline const std::string demangle(const char* name) {
     int status = -4;
@@ -53,11 +62,10 @@ struct transformer {
         auto transform(const Item & x)
             -> typename dest_type<Item>::type
         {
-            static_assert(!(std::is_class<Item>::value && std::is_base_of<combination_base, Item>::value), "this should have never be called in this context.");
+            static_assert(!(std::is_class<Item>::value && std::is_base_of<combination_base, Item>::value), "this should have never been called in this context.");
             typedef typename std::enable_if<
                         !(std::is_class<Item>::value && std::is_base_of<combination_base, Item>::value),
                         TransformerFactory>::type factory;
-            /*return std::move(factory::transform(x));*/
             return factory::transform(x);
         }
 
@@ -77,7 +85,6 @@ template <class kls, typename... Items>
 struct combination : public std::tuple<Items...>, public virtual combination_base {
     typedef kls derived;
     typedef std::tuple<Items...> tuple;
-    /*typedef Items elements;*/
 
     struct clone_helper {
         template <typename X> struct dest_type { typedef X type; };
@@ -88,23 +95,13 @@ struct combination : public std::tuple<Items...>, public virtual combination_bas
         : std::tuple<Items...>(y...)
     { debug_log << "ctor " << demangle(typeid(*this).name()) << debug_endl; }
 
-#if 0
-    combination(const combination<kls, Items...>&& c)
-        /*: std::tuple<Items...>(map_tuple<clone_helper, tuple, Items...>::transform(c))*/
-        : std::tuple<Items...>(c)
-    { debug_log << "move ctor " << typeid(*this).name() << debug_endl; }
-#endif
-
     combination(const combination<kls, Items...>& c)
-        /*: std::tuple<Items...>(map_tuple<clone_helper, tuple, Items...>::transform(c))*/
         : std::tuple<Items...>(c)
     { debug_log << "copy ctor " << demangle(typeid(*this).name()) << debug_endl; }
 
     combination(const std::tuple<Items...>& c)
         : std::tuple<Items...>(c)
-        /*: std::tuple<Items...>(c)*/
     { debug_log << "tuple copy ctor " << demangle(typeid(*this).name()) << debug_endl; }
-    /*combination(std::tuple<Items...> && y) : std::tuple<Items...>(y) {}*/
 
     template <typename IndexTuple, typename Item> struct combinator_helper;
     template <int... Index, typename Item>
@@ -155,8 +152,6 @@ struct combination : public std::tuple<Items...>, public virtual combination_bas
                        typename make_indexes<Items2...>::type,
                        Items2...
                    >::combine(*this, t);
-            /*return { std::forward(std::tuple_cat(*this, t)) };*/
-            /*return { std::move(std::tuple_cat(*this, t)) };*/
         }
 #endif
 
@@ -170,7 +165,6 @@ struct combination : public std::tuple<Items...>, public virtual combination_bas
         typename transformer<TransformerFactory>::template dest_type<combination<kls, Items...>>::type
         transform()
         {
-            /*return *this;*/
             return transformer<TransformerFactory>::transform(*this);
         }
 };
@@ -210,3 +204,8 @@ make_optional(const combination<single, Item>& e) { return { e }; }
 template <typename Item>
 combination<optional<multiple>, Item>
 make_optional(const combination<multiple, Item>& e) { return { e }; }
+
+}
+
+#endif
+

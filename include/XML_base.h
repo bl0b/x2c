@@ -1,9 +1,15 @@
-#ifndef _XML_BASE_H_
-#define _XML_BASE_H_
+/*
+ *  Distributed under the Boost Software License, Version 1.0. (See accompanying
+ *  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ */
+#ifndef _X2C_XML_BASE_H_
+#define _X2C_XML_BASE_H_
 
 #include "structure.h"
 
 #define CHARDATA_NAME "#CHARDATA"
+
+namespace x2c {
 
 template <typename EvalType> struct Element;
 template <typename ParentType, typename OutputType, typename EntityType> struct data_binder;
@@ -135,6 +141,8 @@ template<typename T>
     public:
         static const bool value = sizeof(test<T>(0)) == sizeof(char);
     };
+
+}
 
 #endif
 

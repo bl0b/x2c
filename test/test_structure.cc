@@ -1,6 +1,8 @@
 #include "catch.hpp"
 
-#include "XML.h"
+#include "x2c.h"
+
+using namespace x2c;
 
 TEST_CASE( "structure operators 1 (ordered)", "Left/Right assoc equivalence" )
 {

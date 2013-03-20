@@ -1,5 +1,7 @@
 #include "catch.hpp"
-#include "XML.h"
+#include "x2c.h"
+
+using namespace x2c;
 
 TEST_CASE( "bad input.1", "Malformed XML" )
 {

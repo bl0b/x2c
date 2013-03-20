@@ -1,9 +1,14 @@
-#ifndef _XML_ITERATORS_H_
-#define _XML_ITERATORS_H_
+/*
+ *  Distributed under the Boost Software License, Version 1.0. (See accompanying
+ *  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ */
+#ifndef _X2C_XML_ITERATORS_H_
+#define _X2C_XML_ITERATORS_H_
 
 #include "XML_base.h"
 #include <vector>
 
+namespace x2c {
 
 template <typename A, typename B, typename C>
 std::string get_name(const data_binder<A, B, C>& d) { return d.name; }
@@ -478,6 +483,8 @@ template <typename OutputType, typename kls, typename... Elements>
 iterator<OutputType, kls, Elements...>* make_iterator(const combination<kls, Elements...>& comb)
 {
     return new iterator<OutputType, kls, Elements...>(comb);
+}
+
 }
 
 #endif

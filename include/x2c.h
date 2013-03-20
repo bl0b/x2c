@@ -1,5 +1,9 @@
-#ifndef _XML_BIND_H_
-#define _XML_BIND_H_
+/*
+ *  Distributed under the Boost Software License, Version 1.0. (See accompanying
+ *  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ */
+#ifndef _X2C_H_
+#define _X2C_H_
 
 #include <fstream>
 #include <sstream>
@@ -12,6 +16,8 @@
 
 
 #define BUFF_SIZE 4096
+
+namespace x2c {
 
 struct xml_exception : public std::exception {
     int line, col;
@@ -29,6 +35,7 @@ struct xml_exception : public std::exception {
 
     const char* what() const throw() { return msg.c_str(); }
 };
+
 
 struct xml_context_impl {
     std::stringstream buffer;
@@ -182,6 +189,7 @@ template <typename EvalType>
                 binder.after(binder.install(data), &text);
             }
     };
+
 
 struct XMLReader {
     XML_Parser parser;
@@ -346,6 +354,7 @@ struct Element : public Entity<EvalType> {
         }
 };
 
+}
 
 #define DTD_START(dtd_name, root_name, eval_type) \
     struct dtd_name ## _type { \

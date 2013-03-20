@@ -1,5 +1,11 @@
-#ifndef _XML_DATABINDING_H_
-#define _XML_DATABINDING_H_
+/*
+ *  Distributed under the Boost Software License, Version 1.0. (See accompanying
+ *  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ */
+#ifndef _X2C_DATABINDING_H_
+#define _X2C_DATABINDING_H_
+
+namespace x2c {
 
 template <typename RootType>
 struct data_binder<void, RootType, Element<RootType>> {
@@ -301,7 +307,6 @@ struct data_binder<StrucType, FieldType StrucType::*, Element<typename unconst_v
 
 
 
-
 inline
 combination<single, CharData>
 chardata() { return { CharData() }; }
@@ -476,6 +481,8 @@ struct resolve_bindings : public std::conditional<
                                      resolve_bindings_class<SomeType>,
                                      resolve_bindings_integral<SomeType>>::type
 {};
+
+}
 
 #endif
 
