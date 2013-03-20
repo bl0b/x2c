@@ -5,6 +5,9 @@ all: .test
 .test:
 	cd test && make
 
+test-coverage:
+	cd test && make $@
+
 clean:
 	cd test && make clean
 
