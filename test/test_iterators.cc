@@ -1,10 +1,9 @@
 #include "catch.hpp"
 #include "x2c.h"
 
-using namespace x2c;
-
-
 struct dummy {};
+
+namespace x2c {
 
 template <>
 struct data_binder<dummy, dummy, void> {
@@ -17,6 +16,10 @@ struct data_binder<dummy, dummy, void> {
     void after(dummy*, dummy*) const {}
     void rollback(dummy**) const {}
 };
+
+}
+
+using namespace x2c;
 
 data_binder<dummy, dummy, void> B(const std::string& name) { return { name, NULL }; }
 
