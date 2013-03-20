@@ -198,7 +198,7 @@ TEST_CASE( "container class binding.2", "push into map" )
     };
     DTD_START(vec, x, X)
         ELEMENT(item, X::value_type);
-        item = A("key", const_cast<std::string X::value_type::*>(&X::value_type::first)) & A("value", &X::value_type::second);
+        item = A("key", &X::value_type::first) & A("value", &X::value_type::second);
         x = E(item, &X::v);
     DTD_END(vec);
 
