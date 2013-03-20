@@ -10,6 +10,12 @@ template <typename ParentType, typename OutputType, typename EntityType> struct 
 template <typename OutputType, typename kls, typename... Elements> struct iterator;
 template <typename EvalType> struct xml_context;
 
+template <typename ValueType>
+struct unconst_value_type { typedef ValueType type; };
+template <typename K, typename V>
+struct unconst_value_type<std::pair<const K, V>> { typedef std::pair<K, V> type; };
+
+
 template <typename EvalType>
 struct Entity {
     typedef EvalType eval_type;
@@ -58,7 +64,7 @@ struct elt_binding {
 template <typename StrucType, typename CollType>
 struct elt_coll_binding {
     typedef CollType collection_type;
-    typedef typename collection_type::value_type value_type;
+    typedef typename unconst_value_type<typename collection_type::value_type>::type value_type;
     typedef Element<value_type> entity_type;
 
     const entity_type* elt;

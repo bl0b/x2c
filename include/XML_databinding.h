@@ -256,11 +256,10 @@ struct data_binder<StrucType, FieldType StrucType::*, std::string> {
 };
 
 
-
-/* container::value_type binding */
+/* container::value_type binding (special case for value_types like std::pair<const K, V>) */
 template <typename StrucType, typename FieldType>
-struct data_binder<StrucType, FieldType StrucType::*, Element<typename FieldType::value_type>> {
-    typedef typename FieldType::value_type value_type;
+struct data_binder<StrucType, FieldType StrucType::*, Element<typename unconst_value_type<typename FieldType::value_type>::type>> {
+    typedef typename unconst_value_type<typename FieldType::value_type>::type value_type;
     typedef Element<value_type> entity_type;
 
     const std::string name;
@@ -349,7 +348,7 @@ typename std::enable_if<
     is_container<CollType>::value,
     combination<multiple, elt_coll_binding<StrucType, CollType>>
 >::type
-E(const Element<typename CollType::value_type>& elt, CollType StrucType::* field)
+E(const Element<typename unconst_value_type<typename CollType::value_type>::type>& elt, CollType StrucType::* field)
 {
     return {
         { &elt, field }
@@ -463,7 +462,7 @@ struct resolve_bindings_class {
     /* simple setter */
         template <class CollType>
         static
-        data_binder<StrucType, CollType StrucType::*, Element<typename CollType::value_type>>
+        data_binder<StrucType, CollType StrucType::*, Element<typename unconst_value_type<typename CollType::value_type>::type>>
         transform(const elt_coll_binding<StrucType, CollType>& eb)
         {
             DEBUG;

@@ -194,11 +194,34 @@ TEST_CASE( "container class binding.2", "push into map" )
 {
     struct X {
         std::map<std::string, int> v;
-        typedef std::map<std::string, int>::value_type value_type;
+        typedef typename unconst_value_type<std::map<std::string, int>::value_type>::type value_type; /* tricky, eh */
     };
     DTD_START(vec, x, X)
         ELEMENT(item, X::value_type);
         item = A("key", const_cast<std::string X::value_type::*>(&X::value_type::first)) & A("value", &X::value_type::second);
+        x = E(item, &X::v);
+    DTD_END(vec);
+
+    std::stringstream iss(R"(<x><item key="a" value="23"/><item key="b" value="42"/><item key="c" value="6106"/></x>)");
+    X* output = vec.parse(iss);
+    REQUIRE(output != (void*)0);
+    REQUIRE(output->v.size() == 3);
+    CHECK(output->v["a"] == 23);
+    CHECK(output->v["b"] == 42);
+    CHECK(output->v["c"] == 6106);
+    delete output;
+}
+
+
+TEST_CASE( "container class binding.3", "push into map (second version)" )
+{
+    struct X {
+        std::map<std::string, int> v;
+        typedef std::pair<std::string, int> value_type; /* much simpler to write this way */
+    };
+    DTD_START(vec, x, X)
+        ELEMENT(item, X::value_type);
+        item = A("key", &X::value_type::first) & A("value", &X::value_type::second);
         x = E(item, &X::v);
     DTD_END(vec);
 
