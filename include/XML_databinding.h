@@ -47,6 +47,41 @@ struct data_binder<void, RootType, Element<RootType>> {
 };
 
 
+/* no binding : validate and discard element */
+template <typename EvalType>
+struct data_binder<ignore, EvalType, Element<EvalType>> {
+    typedef Element<EvalType> entity_type;
+    typedef EvalType value_type;
+    const std::string name;
+    const entity_type* elt;
+
+    data_validator<value_type> validate;
+
+    data_binder(const std::string& n, const entity_type* e, data_validator<value_type> v)
+        : name(n), elt(e), validate(v)
+    {}
+
+    template <typename T>
+    EvalType* install(T* container) const
+    {
+        return new EvalType();
+    }
+
+    template <typename T>
+    bool after(T* container, EvalType* data) const
+    {
+        delete_on_scope_exit<value_type> _ = { data };
+        return validate(data);
+    }
+
+    void rollback(EvalType** ptr) const
+    {
+        delete *ptr;
+        *ptr = NULL;
+    }
+};
+
+
 /* simple setter */
 template <typename StrucType, typename FieldType>
 struct data_binder<StrucType, FieldType StrucType::*, Element<FieldType>> {
@@ -277,6 +312,41 @@ struct data_binder<EvalType, EvalType, std::string> {
 };
 
 
+/* no binding : validate and discard attribute/chardata */
+template <typename EvalType>
+struct data_binder<ignore, EvalType, std::string> {
+    typedef Element<EvalType> entity_type;
+    typedef std::string value_type;
+
+    const std::string name;
+    const entity_type* elt;
+
+    data_validator<value_type> validate;
+
+    data_binder(const std::string& n, data_validator<value_type> v)
+        : name(n), validate(v)
+    {}
+
+    template <typename T>
+    EvalType* install(T* container) const
+    {
+        return NULL;
+    }
+
+    template <typename T>
+    bool after(T* container, EvalType* ptr, std::string* data) const
+    {
+        return validate(data);
+        (void)container; (void)ptr;
+    }
+
+    void rollback(EvalType** ptr) const
+    {
+        (void)ptr;
+    }
+};
+
+
 /* attribute binding */
 template <typename StrucType, typename FieldType>
 struct data_binder<StrucType, FieldType StrucType::*, std::string> {
@@ -411,6 +481,15 @@ A(const char* name, FieldType StrucType::* field)
 }
 
 
+inline
+combination<single, attr_binding<ignore, std::string>>
+A(const char* name, ignore_entity ignore::* field)
+{
+    data_validator<std::string> k = &_true_<std::string>::_;
+    return { attr_binding<ignore, std::string>(name, k) };
+}
+
+
 template <typename StrucType, typename FieldType>
 combination<single, elt_binding<StrucType, FieldType>>
 E(const Element<FieldType>& elt, FieldType StrucType::* field)
@@ -431,6 +510,20 @@ E(const Element<FieldType>& elt, FieldType* StrucType::* field)
         { &elt, field, k }
     };
 }
+
+
+template <typename FieldType>
+combination<single, elt_binding<ignore, FieldType>>
+E(const Element<FieldType>& elt, ignore_entity ignore::* field)
+{
+    data_validator<FieldType> k = &_true_<FieldType>::_;
+    return {
+        { &elt, k }
+    };
+}
+
+
+
 
 
 template <typename StrucType, class CollType>
@@ -484,6 +577,25 @@ struct resolve_bindings_integral {
     {
         DEBUG;
         return { CHARDATA_NAME };
+    }
+
+    /* ignore */
+    template <typename X>
+        static
+        data_binder<ignore, IntegralType, Element<X>>
+        transform(const elt_binding<ignore, X>& eb)
+        {
+            DEBUG;
+            return data_binder<ignore, IntegralType, Element<X>>(eb.elt->name, eb.validate);
+        }
+
+    /* ignore */
+    static
+    data_binder<ignore, IntegralType, std::string>
+    transform(const attr_binding<ignore, std::string>& ab)
+    {
+        DEBUG;
+        return { ab.name, ab.validate };
     }
 };
 
@@ -559,6 +671,26 @@ struct resolve_bindings_class {
             DEBUG;
             return { eb.elt->name, eb.field, eb.elt, eb.validate };
         }
+
+    /* ignore */
+    template <typename X>
+        static
+        data_binder<ignore, X, Element<X>>
+        transform(const elt_binding<ignore, X>& eb)
+        {
+            DEBUG;
+            return data_binder<ignore, X, Element<X>>(eb.elt->name, eb.elt, eb.validate);
+            /*return { eb.elt->name, eb.validate };*/
+        }
+
+    /* ignore */
+    static
+    data_binder<ignore, StrucType, std::string>
+    transform(const attr_binding<ignore, std::string>& ab)
+    {
+        DEBUG;
+        return { ab.name, ab.validate };
+    }
 };
 
 template <typename SomeType>

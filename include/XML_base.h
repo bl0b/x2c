@@ -11,6 +11,9 @@
 
 namespace x2c {
 
+struct ignore_entity {};
+struct ignore { ignore_entity entity; };
+
 template <typename X>
 using data_validator = std::function<bool(X*)>;
 
@@ -76,6 +79,29 @@ struct attr_binding : public Entity<FieldType StrucType::*> {
 };
 
 
+template <>
+struct attr_binding<ignore, std::string> {
+    typedef std::string entity_type;
+    typedef std::string eval_type;
+
+    std::string name;
+    data_validator<std::string> validate;
+
+    attr_binding(const std::string& n, data_validator<std::string>& dv)
+        : name(n), validate(dv)
+    {}
+
+    template <typename Predicate>
+    attr_binding<ignore, std::string>
+        operator / (Predicate pred)
+        {
+            data_validator<std::string> prev = validate;
+            data_validator<std::string> v = [prev, pred] (std::string* x) { return prev(x) && pred(x); };
+            return attr_binding<ignore, std::string>(name, v);
+        }
+};
+
+
 template <typename StrucType, typename FieldType>
 struct elt_binding {
     typedef Element<FieldType> entity_type;
@@ -93,6 +119,26 @@ struct elt_binding {
         operator / (data_validator<FieldType> v)
         {
             return { elt, field, [this, v] (FieldType* x) { return validate(*x) && v(*x); } };
+        }
+};
+
+
+template <typename FieldType>
+struct elt_binding<ignore, FieldType> {
+    typedef Element<FieldType> entity_type;
+    typedef FieldType eval_type;
+
+    const entity_type* elt;
+    data_validator<FieldType> validate;
+
+    elt_binding(const Element<FieldType>* e, data_validator<FieldType>& dv)
+        : elt(e), validate(dv)
+    {}
+
+    attr_binding<ignore, FieldType>
+        operator / (data_validator<FieldType> v)
+        {
+            return { elt, [this, v] (FieldType* x) { return validate(*x) && v(*x); } };
         }
 };
 

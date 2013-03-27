@@ -46,6 +46,111 @@ iterator<OutputType, kls, Elements...>* make_iterator(const combination<kls, Ele
 
 
 template <typename OutputType, typename SubOutputType, typename EntityType>
+struct iterator<OutputType, single, data_binder<ignore, SubOutputType, EntityType>> : public iterator_base<OutputType> {
+    using iterator_base<OutputType>::state;
+    using iterator_base<OutputType>::next;
+    using iterator_base<OutputType>::done;
+
+    data_binder<ignore, SubOutputType, EntityType> binder;
+
+    iterator(const combination<single, data_binder<ignore, SubOutputType, EntityType>>& comb)
+        : iterator_base<OutputType>(false), binder(std::get<0>(comb))
+    {
+        /*debug_log << "ITERATOR on " << binder.name << debug_endl;*/
+    }
+
+    bool accept(const std::string& name)
+    {
+        return next && name == binder.name;
+    }
+
+    bool consume(const std::string& name, xml_context<OutputType>* context)
+    {
+        DEBUG;
+        state = accept(name);
+        done |= state;
+        if (state && context) {
+            context->install(binder, this);
+        }
+        next = false;
+        return state;
+    }
+};
+
+
+template <typename OutputType, typename SubOutputType>
+struct iterator<OutputType, single, data_binder<ignore, SubOutputType, std::string>> : public iterator_base<OutputType> {
+    using iterator_base<OutputType>::state;
+    using iterator_base<OutputType>::next;
+    using iterator_base<OutputType>::done;
+
+    data_binder<ignore, SubOutputType, std::string> binder;
+
+    iterator(const combination<single, data_binder<ignore, SubOutputType, std::string>>& comb)
+        : iterator_base<OutputType>(false), binder(std::get<0>(comb))
+    {
+        /*debug_log << "ITERATOR on " << binder.name << debug_endl;*/
+    }
+
+    bool accept(const std::string& name)
+    {
+        /*debug_log << "accept? " << name << " vs " << binder.name << ", next=" << next << debug_endl;*/
+        return next && name == binder.name;
+    }
+
+    bool consume(const std::string& name, xml_context<OutputType>* context)
+    {
+        DEBUG;
+        state = accept(name);
+        /*debug_log << "state=" << state << debug_endl;*/
+        if (state && context) {
+            context->install(binder, this);
+        }
+        done |= state;
+        next = false;
+        return state;
+    }
+};
+
+
+template <typename OutputType, typename SubOutputType, typename EntityType>
+struct iterator<OutputType, multiple, data_binder<ignore, SubOutputType, EntityType>> : public iterator_base<OutputType> {
+    using iterator_base<OutputType>::state;
+    using iterator_base<OutputType>::next;
+    using iterator_base<OutputType>::done;
+
+    data_binder<ignore, SubOutputType, EntityType> binder;
+
+    iterator(const combination<multiple, data_binder<ignore, SubOutputType, EntityType>>& comb)
+        : iterator_base<OutputType>(false), binder(std::get<0>(comb))
+    {
+        /*debug_log << "ITERATOR on " << binder.name << debug_endl;*/
+    }
+
+    bool accept(const std::string& name)
+    {
+        return name == binder.name;
+    }
+
+    bool consume(const std::string& name, xml_context<OutputType>* context)
+    {
+        state = accept(name);
+        if (state && context) {
+            context->install(binder, this);
+        }
+        /*if (state) {*/
+            /*std::cerr << "[[" << typeid(binder).name() << "]]";*/
+        /*} else {*/
+            /*std::cerr << "[[FAILED]]";*/
+        /*}*/
+        done |= state;
+        next = state;
+        return state;
+    }
+};
+
+
+template <typename OutputType, typename SubOutputType, typename EntityType>
 struct iterator<OutputType, single, data_binder<OutputType, SubOutputType, EntityType>> : public iterator_base<OutputType> {
     using iterator_base<OutputType>::state;
     using iterator_base<OutputType>::next;
@@ -308,6 +413,13 @@ struct iterator_collection : public iterator_base<OutputType> {
             static
             iterator<OutputType, AnyKls, data_binder<OutputType, AnyOutputType, AnyEntityType>>
             transform(const combination<AnyKls, data_binder<OutputType, AnyOutputType, AnyEntityType>>& comb)
+            {
+                return { comb };
+            }
+        template <typename AnyOutputType, typename AnyKls, typename AnyEntityType>
+            static
+            iterator<OutputType, AnyKls, data_binder<ignore, AnyOutputType, AnyEntityType>>
+            transform(const combination<AnyKls, data_binder<ignore, AnyOutputType, AnyEntityType>>& comb)
             {
                 return { comb };
             }

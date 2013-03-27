@@ -103,3 +103,43 @@ TEST_CASE( "idiom 3.3", "Element modification from an inner element with inner s
     delete output;
 }
 
+TEST_CASE( "idiom 4.1", "ignoring an attribute" )
+{
+    struct Pouet {
+        int i;
+    };
+
+    DTD_START(test, pouet, Pouet)
+        pouet = A("nothing", &ignore::entity) & A("i", &Pouet::i);
+    DTD_END(test);
+
+    std::stringstream iss;
+    iss << R"(<pouet nothing="" i="1234" />)";
+    Pouet* output = NULL;
+    REQUIRE_NOTHROW(output = test.parse(iss));
+    REQUIRE(output != NULL);
+    REQUIRE(output->i == 1234);
+    delete output;
+}
+
+TEST_CASE( "idiom 4.2", "ignoring an element" )
+{
+    struct Pouet {
+        int i;
+    };
+
+    DTD_START(test, pouet, Pouet)
+        ELEMENT(nil, int);
+        nil = chardata();
+        pouet = A("i", &Pouet::i) & E(nil, &ignore::entity);
+    DTD_END(test);
+
+    std::stringstream iss;
+    iss << R"(<pouet i="1234"><nil>1234</nil></pouet>)";
+    Pouet* output = NULL;
+    REQUIRE_NOTHROW(output = test.parse(iss));
+    REQUIRE(output != NULL);
+    REQUIRE(output->i == 1234);
+    delete output;
+}
+

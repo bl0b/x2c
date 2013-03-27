@@ -112,7 +112,7 @@ template <typename EvalType>
                 };
                 /*debug_log << "defined after()" << debug_endl;*/
             } else {
-                data = binder.install(NULL);
+                data = binder.install((ParentEvalType*)NULL);
                 after = [] () {};
                 /*debug_log << "didn't define after()" << debug_endl;*/
             }
@@ -175,6 +175,37 @@ template <typename EvalType>
         }
 
         template <typename SubOutputType, typename EntityType, typename kls>
+            void install(const data_binder<ignore, SubOutputType, EntityType>& binder,
+                         iterator<EvalType, kls, data_binder<ignore, SubOutputType, EntityType>>* binder_iter)
+            {
+                typedef typename std::remove_reference<decltype(*binder.install(data))>::type SubContextEvalType;
+                DEBUG;
+                if (on_element) {
+                    XML_SetUserData(parser, static_cast<void*>(
+                                new xml_context<SubContextEvalType>(
+                                    parser,
+                                    this,
+                                    binder,
+                                    binder_iter)));
+                } else {
+                    error("(internal) Trying to install element binding but not on an element");
+                }
+            }
+
+        template <typename SubOutputType, typename kls>
+            void install(const data_binder<ignore, SubOutputType, std::string>& binder,
+                         iterator<EvalType, kls, data_binder<ignore, SubOutputType, std::string>>* binder_iter)
+            {
+                DEBUG;
+                if (on_element) {
+                    error("(internal) Trying to install attribute binding but not on an attribute");
+                }
+                if (!binder.after(data, binder.install(data), &text)) {
+                    binder_iter->invalidate();
+                }
+            }
+
+        template <typename SubOutputType, typename EntityType, typename kls>
             void install(const data_binder<EvalType, SubOutputType, EntityType>& binder,
                          iterator<EvalType, kls, data_binder<EvalType, SubOutputType, EntityType>>* binder_iter)
             {
@@ -187,9 +218,6 @@ template <typename EvalType>
                                     this,
                                     binder,
                                     binder_iter)));
-
-
-
                 } else {
                     error("(internal) Trying to install element binding but not on an element");
                 }
