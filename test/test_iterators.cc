@@ -13,7 +13,7 @@ struct data_binder<dummy, dummy, void> {
     }* elt;
 
     dummy* install(dummy*) const { return NULL; }
-    void after(dummy*, dummy*) const {}
+    bool after(dummy*, dummy*) const { return true; }
     void rollback(dummy**) const {}
 };
 

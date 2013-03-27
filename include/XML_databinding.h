@@ -7,6 +7,12 @@
 
 namespace x2c {
 
+template <typename T>
+    struct delete_on_scope_exit {
+        T* data;
+        ~delete_on_scope_exit() { delete data; }
+    };
+
 template <typename RootType>
 struct data_binder<void, RootType, Element<RootType>> {
     typedef Element<RootType> entity_type;
@@ -24,9 +30,10 @@ struct data_binder<void, RootType, Element<RootType>> {
         (void)container;
     }
 
-    void after(void* ptr, RootType* data) const
+    bool after(void* ptr, RootType* data) const
     {
         DEBUG;
+        return true;
         (void)ptr; (void)data;
     }
 
@@ -44,29 +51,37 @@ struct data_binder<void, RootType, Element<RootType>> {
 template <typename StrucType, typename FieldType>
 struct data_binder<StrucType, FieldType StrucType::*, Element<FieldType>> {
     typedef Element<FieldType> entity_type;
+    typedef FieldType value_type;
 
     const std::string name;
     FieldType StrucType::* target;
     const entity_type* elt;
 
-    data_binder(const std::string& n, FieldType StrucType::* t, const entity_type* e)
-        : name(n), target(t), elt(e)
+    data_validator<value_type> validate;
+
+    data_binder(const std::string& n, FieldType StrucType::* t, const entity_type* e, data_validator<value_type> v)
+        : name(n), target(t), elt(e), validate(v)
     { DEBUG; }
 
     data_binder(const data_binder<StrucType, FieldType StrucType::*, Element<StrucType>>& d)
-        : name(d.name), target(d.target), elt(d.elt)
+        : name(d.name), target(d.target), elt(d.elt), validate(d.validate)
     { DEBUG; }
 
     FieldType* install(StrucType* container) const
     {
-        return &(container->*target);
+        /*return &(container->*target);*/
+        return new FieldType();
     }
 
-    void after(StrucType* ptr, FieldType* data) const
+    bool after(StrucType* container, FieldType* data) const
     {
         DEBUG;
-        debug_log << "container=" << ptr << " \"" << elt->name << "\" target=" << ptr->*target << debug_endl;
-        (void)ptr; (void)data;
+        delete_on_scope_exit<FieldType> _ = { data };
+        if (validate(data)) {
+            container->*target = *data;
+            return true;
+        }
+        return false;
     }
 
     void rollback(FieldType** ptr) const
@@ -81,17 +96,20 @@ struct data_binder<StrucType, FieldType StrucType::*, Element<FieldType>> {
 template <typename StrucType, typename FieldType>
 struct data_binder<StrucType, FieldType* StrucType::*, Element<FieldType>> {
     typedef Element<FieldType> entity_type;
+    typedef FieldType value_type;
 
     const std::string name;
     FieldType* StrucType::* target;
     const entity_type* elt;
 
-    data_binder(const std::string& n, FieldType* StrucType::* t, const entity_type* e)
-        : name(n), target(t), elt(e)
+    data_validator<value_type> validate;
+
+    data_binder(const std::string& n, FieldType* StrucType::* t, const entity_type* e, data_validator<value_type> v)
+        : name(n), target(t), elt(e), validate(v)
     { DEBUG; }
 
     data_binder(const data_binder<StrucType, FieldType* StrucType::*, Element<StrucType>>& d)
-        : name(d.name), target(d.target), elt(d.elt)
+        : name(d.name), target(d.target), elt(d.elt), validate(d.validate)
     { DEBUG; }
 
     FieldType* install(StrucType* container) const
@@ -101,11 +119,17 @@ struct data_binder<StrucType, FieldType* StrucType::*, Element<FieldType>> {
         return new FieldType();
     }
 
-    void after(StrucType* container, FieldType* data) const
+    bool after(StrucType* container, FieldType* data) const
     {
         DEBUG;
         debug_log << "container=" << container << " \"" << elt->name << "\" target=" << container->*target << debug_endl;
-        container->*target = data;
+        if (validate(data)) {
+            container->*target = data;
+            return true;
+        } else {
+            delete data;
+        }
+        return false;
     }
 
     void rollback(FieldType** ptr) const
@@ -126,15 +150,19 @@ struct data_binder<EvalType, Manipulator, Element<Manipulator>> {
     const std::string name;
     const entity_type* elt;
 
-    data_binder(const std::string& n, const entity_type* e)
-        : name(n), elt(e)
+    typedef Manipulator value_type;
+
+    data_validator<value_type> validate;
+
+    data_binder(const std::string& n, const entity_type* e, data_validator<value_type> v)
+        : name(n), elt(e), validate(v)
     {
         DEBUG;
         debug_log << ((void*)this) << ' ' << name << debug_endl;
     }
 
     data_binder(const data_binder<EvalType, Manipulator, Element<Manipulator>>& d)
-        : name(d.name), elt(d.elt)
+        : name(d.name), elt(d.elt), validate(d.validate)
     { DEBUG; }
 
     Manipulator* install(EvalType* container) const
@@ -143,12 +171,17 @@ struct data_binder<EvalType, Manipulator, Element<Manipulator>> {
         (void)container;
     }
 
-    void after(EvalType* container, Manipulator* data) const
+    bool after(EvalType* container, Manipulator* data) const
     {
         DEBUG;
+        delete_on_scope_exit<Manipulator> _ = { data };
         debug_log << "container=" << container << " \"" << elt->name << "\" manip=" << data << debug_endl;
-        (*data)(*container);
-        delete data;
+        if (validate(data)) {
+            (*data)(*container);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     void rollback(Manipulator** ptr) const
@@ -169,12 +202,16 @@ struct data_binder<EvalType, EvalType, Element<EvalType>> {
     const std::string name;
     const entity_type* elt;
 
-    data_binder(const std::string& n, const entity_type* e)
-        : name(n), elt(e)
+    typedef EvalType value_type;
+
+    data_validator<value_type> validate;
+
+    data_binder(const std::string& n, const entity_type* e, data_validator<value_type> v)
+        : name(n), elt(e), validate(v)
     { DEBUG; }
 
     data_binder(const data_binder<EvalType, EvalType, Element<EvalType>>& d)
-        : name(d.name), elt(d.elt)
+        : name(d.name), elt(d.elt), validate(d.validate)
     { DEBUG; }
 
     EvalType* install(EvalType* container) const
@@ -182,8 +219,11 @@ struct data_binder<EvalType, EvalType, Element<EvalType>> {
         return container;
     }
 
-    void after(EvalType* container, EvalType* data) const
-    { DEBUG; }
+    bool after(EvalType* container, EvalType* data) const
+    {
+        DEBUG;
+        return validate(data);
+    }
 
     void rollback(EvalType** ptr) const
     {
@@ -198,25 +238,35 @@ template <typename EvalType>
 struct data_binder<EvalType, EvalType, std::string> {
     const std::string name;
     typedef std::string entity_type;
+    typedef EvalType value_type;
+
+    data_validator<value_type> validate;
 
     data_binder(const std::string& n)
-        : name(n)
+        : name(n), validate([] (value_type*) { return true; })
     { DEBUG; }
 
     data_binder(const data_binder<EvalType, EvalType, std::string>& d)
-        : name(d.name)
+        : name(d.name), validate(d.validate)
     { DEBUG; }
 
     EvalType* install(EvalType* container) const
     {
-        return container;
+        return new EvalType();
     }
 
-    void after(EvalType* container, std::string* data) const
+    bool after(EvalType* container, EvalType* ptr, std::string* data) const
     {
         DEBUG;
-        from_string(*data, *container);
-        debug_log << "converted => " << (*container) << debug_endl;
+        delete_on_scope_exit<EvalType> _ = { ptr };
+        from_string(*data, *ptr);
+        if (validate(ptr)) {
+            *container = *ptr;
+            return true;
+        }
+        return false;
+        /*debug_log << "converted => " << (*container) << debug_endl;*/
+        /*return validate(container);*/
     }
 
     void rollback(EvalType** ptr) const
@@ -233,31 +283,42 @@ struct data_binder<StrucType, FieldType StrucType::*, std::string> {
     const std::string name;
     FieldType StrucType::* field;
     typedef std::string entity_type;
+    typedef FieldType value_type;
 
-    data_binder(const std::string& n, FieldType StrucType::* f)
-        : name(n), field(f)
+    data_validator<value_type> validate;
+
+    data_binder(const std::string& n, FieldType StrucType::* f, data_validator<value_type> v)
+        : name(n), field(f), validate(v)
     { DEBUG; }
 
     data_binder(const data_binder<StrucType, FieldType StrucType::*, std::string>& d)
-        : name(d.name), field(d.field)
+        : name(d.name), field(d.field), validate(d.validate)
     { DEBUG; }
 
     FieldType* install(StrucType* container) const
     {
-        return &(container->*field);
+        /*return &(container->*field);*/
+        return new FieldType();
     }
 
-    void after(FieldType* ptr, std::string* data) const
+    bool after(StrucType* container, FieldType* ptr, std::string* data) const
     {
         DEBUG;
+        delete_on_scope_exit<FieldType> _ = { ptr };
         from_string(*data, *ptr);
-        debug_log << "converted => " << (*ptr) << debug_endl;
+        if (validate(ptr)) {
+            container->*field = *ptr;
+            return true;
+        }
+        return false;
+        /*debug_log << "converted => " << (*ptr) << debug_endl;*/
+        /*return validate(ptr);;*/
     }
 
     void rollback(FieldType** ptr) const
     {
         std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << ptr << ' ' << (*ptr) << std::endl;
-        (void)ptr;
+        *ptr = NULL;
     }
 };
 
@@ -272,14 +333,16 @@ struct data_binder<StrucType, FieldType StrucType::*, Element<typename unconst_v
     FieldType StrucType::* coll;
     const entity_type* elt;
 
-    data_binder(const std::string& n, FieldType StrucType::* f, const entity_type* e)
-        : name(n), coll(f), elt(e)
+    data_validator<value_type> validate;
+
+    data_binder(const std::string& n, FieldType StrucType::* f, const entity_type* e, data_validator<value_type> v)
+        : name(n), coll(f), elt(e), validate(v)
     {
         DEBUG;
     }
 
     data_binder(const data_binder<StrucType, FieldType StrucType::*, std::string>& d)
-        : name(d.name), coll(d.field)
+        : name(d.name), coll(d.field), validate(d.validate)
     {
         DEBUG;
     }
@@ -289,11 +352,16 @@ struct data_binder<StrucType, FieldType StrucType::*, Element<typename unconst_v
         return new value_type();
     }
 
-    void after(StrucType* ptr, value_type* data) const
+    bool after(StrucType* ptr, value_type* data) const
     {
         DEBUG;
-        select_insertion_method<FieldType>::add(ptr->*coll, *data);
-        delete data;
+        delete_on_scope_exit<value_type> _ = { data };
+        if (validate(data)) {
+            select_insertion_method<FieldType>::add(ptr->*coll, *data);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     void rollback(value_type** ptr) const
@@ -306,6 +374,20 @@ struct data_binder<StrucType, FieldType StrucType::*, Element<typename unconst_v
 };
 
 
+#if 1
+template <typename kls, typename BindDescr, typename Predicate>
+combination<kls, BindDescr>
+operator / (combination<kls, BindDescr> comb,
+            Predicate val)
+{
+    return { std::get<0>(comb) / val };
+}
+#endif
+
+
+template <typename X> struct _true_ {
+    static bool _(X*) { return true; }
+};
 
 inline
 combination<single, CharData>
@@ -324,7 +406,8 @@ template <typename StrucType, typename FieldType>
 combination<single, attr_binding<StrucType, FieldType>>
 A(const char* name, FieldType StrucType::* field)
 {
-    return { { name, field } };
+    data_validator<FieldType> k = &_true_<FieldType>::_;
+    return { attr_binding<StrucType, FieldType>(name, field, k) };
 }
 
 
@@ -332,8 +415,9 @@ template <typename StrucType, typename FieldType>
 combination<single, elt_binding<StrucType, FieldType>>
 E(const Element<FieldType>& elt, FieldType StrucType::* field)
 {
+    data_validator<FieldType> k = &_true_<FieldType>::_;
     return {
-        { &elt, field }
+        elt_binding<StrucType, FieldType>(&elt, field, k)
     };
 }
 
@@ -342,8 +426,9 @@ template <typename StrucType, typename FieldType>
 combination<single, elt_alloc_binding<StrucType, FieldType>>
 E(const Element<FieldType>& elt, FieldType* StrucType::* field)
 {
+    data_validator<FieldType> k = &_true_<FieldType>::_;
     return {
-        { &elt, field }
+        { &elt, field, k }
     };
 }
 
@@ -355,8 +440,9 @@ typename std::enable_if<
 >::type
 E(const Element<typename unconst_value_type<typename CollType::value_type>::type>& elt, CollType StrucType::* field)
 {
+    data_validator<typename unconst_value_type<typename CollType::value_type>::type> k = &_true_<typename unconst_value_type<typename CollType::value_type>::type>::_;
     return {
-        { &elt, field }
+        { &elt, field, k }
     };
 }
 
@@ -379,7 +465,7 @@ struct resolve_bindings_integral {
         transform(const Element<ManipulatorOrTransient>* e)
         {
             DEBUG;
-            return { e->name, e };
+            return { e->name, e, &_true_<ManipulatorOrTransient>::_ };
         }
 
     /* attr eval_to */
@@ -412,7 +498,7 @@ struct resolve_bindings_class {
         {
             DEBUG;
             debug_log << e->name << debug_endl;
-            return { e->name, e };
+            return { e->name, e, &_true_<ManipulatorOrTransient>::_ };
         }
 
     /* attr eval_to */
@@ -441,7 +527,7 @@ struct resolve_bindings_class {
         transform(const elt_binding<StrucType, FieldType>& eb)
         {
             DEBUG;
-            return { eb.elt->name, eb.field, eb.elt };
+            return { eb.elt->name, eb.field, eb.elt, eb.validate };
         }
 
     /* simple setter with allocator */
@@ -451,7 +537,7 @@ struct resolve_bindings_class {
         transform(const elt_alloc_binding<StrucType, FieldType>& eb)
         {
             DEBUG;
-            return { eb.elt->name, eb.field, eb.elt };
+            return { eb.elt->name, eb.field, eb.elt, eb.validate };
         }
 
     /* attr binding */
@@ -461,7 +547,7 @@ struct resolve_bindings_class {
         transform(const attr_binding<StrucType, FieldType>& ab)
         {
             DEBUG;
-            return { ab.name, ab.field };
+            return data_binder<StrucType, FieldType StrucType::*, std::string>(ab.name, ab.field, ab.validate);
         }
 
     /* simple setter */
@@ -471,7 +557,7 @@ struct resolve_bindings_class {
         transform(const elt_coll_binding<StrucType, CollType>& eb)
         {
             DEBUG;
-            return { eb.elt->name, eb.field, eb.elt };
+            return { eb.elt->name, eb.field, eb.elt, eb.validate };
         }
 };
 

@@ -1,6 +1,6 @@
 #include <fstream>
 
-#include "XML.h"
+#include <x2c.h>
 
 
 

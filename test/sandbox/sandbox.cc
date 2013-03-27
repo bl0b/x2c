@@ -1,4 +1,5 @@
-#include "structure.h"
+/*#include "structure.h"*/
+#include <x2c.h>
 
 
 /*#include <tuple>*/

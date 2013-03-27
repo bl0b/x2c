@@ -11,6 +11,9 @@
 
 namespace x2c {
 
+template <typename X>
+using data_validator = std::function<bool(X*)>;
+
 template <typename EvalType> struct Element;
 template <typename ParentType, typename OutputType, typename EntityType> struct data_binder;
 template <typename OutputType, typename kls, typename... Elements> struct iterator;
@@ -53,8 +56,23 @@ struct attr_binding : public Entity<FieldType StrucType::*> {
 
     FieldType StrucType::* field;
 
-    attr_binding(const std::string& n, FieldType StrucType::* f) : Entity<FieldType StrucType::*>(n), field(f) {}
-    attr_binding(std::string && n, FieldType StrucType::* f) : Entity<FieldType StrucType::*>(n), field(f) {}
+    data_validator<FieldType> validate;
+
+    attr_binding(const std::string& n, FieldType StrucType::* f, data_validator<FieldType>& dv)
+        : Entity<FieldType StrucType::*>(n), field(f), validate(dv)
+    {}
+    attr_binding(std::string && n, FieldType StrucType::* f, data_validator<FieldType>& dv)
+        : Entity<FieldType StrucType::*>(n), field(f), validate(dv)
+    {}
+
+    template <typename Predicate>
+    attr_binding<StrucType, FieldType>
+        operator / (Predicate pred)
+        {
+            data_validator<FieldType> prev = validate;
+            data_validator<FieldType> v = [prev, pred] (FieldType* x) { return prev(x) && pred(x); };
+            return attr_binding<StrucType, FieldType>(name, field, v);
+        }
 };
 
 
@@ -65,6 +83,17 @@ struct elt_binding {
 
     const entity_type* elt;
     eval_type field;
+    data_validator<FieldType> validate;
+
+    elt_binding(const Element<FieldType>* e, eval_type f, data_validator<FieldType>& dv)
+        : elt(e), field(f), validate(dv)
+    {}
+
+    attr_binding<StrucType, FieldType>
+        operator / (data_validator<FieldType> v)
+        {
+            return { elt, field, [this, v] (FieldType* x) { return validate(*x) && v(*x); } };
+        }
 };
 
 template <typename StrucType, typename CollType>
@@ -75,6 +104,13 @@ struct elt_coll_binding {
 
     const entity_type* elt;
     collection_type StrucType::* field;
+    data_validator<value_type> validate;
+
+    elt_coll_binding<StrucType, CollType>
+        operator / (data_validator<value_type> v)
+        {
+            return { elt, field, [this, v] (value_type* x) { return validate(*x) && v(*x); } };
+        }
 };
 
 template <typename StrucType, typename FieldType>
@@ -84,6 +120,17 @@ struct elt_alloc_binding {
 
     const entity_type* elt;
     eval_type field;
+    data_validator<FieldType> validate;
+
+    elt_alloc_binding(const Element<FieldType>* e, eval_type f, data_validator<FieldType>& dv)
+        : elt(e), field(f), validate(dv)
+    {}
+
+    attr_binding<StrucType, FieldType>
+        operator / (data_validator<FieldType*> v)
+        {
+            return { elt, field, [this, v] (FieldType* x) { return validate(x) && v(x); } };
+        }
 };
 
 

@@ -23,13 +23,16 @@ struct xml_exception : public std::exception {
     int line, col;
     std::string msg;
 
-    xml_exception(XML_Parser parser)
+    xml_exception(XML_Parser parser, std::string custom_msg)
         : std::exception()
         , line(XML_GetCurrentLineNumber(parser))
         , col(XML_GetCurrentColumnNumber(parser))
     {
         std::stringstream s;
         s << "Error at line " << line << " column " << col;
+        if (custom_msg.size()) {
+            s << ": " << custom_msg;
+        }
         msg = s.str();
     }
 
@@ -59,13 +62,17 @@ struct xml_context_impl {
     virtual bool consume_element(const std::string& name) = 0;
     virtual void finish() = 0;
 
-    void error() const
+    void error(const std::string& msg) const
     {
-        xml_exception e(parser);
+        xml_exception e(parser, msg);
         std::cerr << "Error: " << e.what() << std::endl;
-        /*if (rollback) {*/
-            /*rollback();*/
-        /*}*/
+        throw e;
+    }
+
+    void error(const char* msg="") const
+    {
+        xml_exception e(parser, msg);
+        std::cerr << "Error: " << e.what() << std::endl;
         throw e;
     }
 };
@@ -82,19 +89,26 @@ template <typename EvalType>
 
         xml_context(const xml_context<EvalType>& e) = delete;
 
-        template <typename ParentEvalType, typename A, typename B, typename C> 
+        /* ajouter un paramètre pour l'itérateur courant, pour pouvoir invoquer dessus invalidate() si le prédicat final foire */
+
+        template <typename ParentEvalType, typename A, typename B, typename C, typename kls> 
         xml_context(XML_Parser parser,
                     xml_context<ParentEvalType>* parent_context,
-                    const data_binder<A, B, C>& binder)
+                    const data_binder<A, B, C>& binder,
+                    iterator<ParentEvalType, kls, data_binder<A, B, C>>* binder_iter)
             : xml_context_impl(parser, parent_context)
             , text()
             , on_element(false)
         {
             if (parent_context) {
                 data = binder.install(parent_context->data);
-                after = [binder, this, parent_context] () {
+                after = [binder, this, parent_context, binder_iter] () {
                     DEBUG;
-                    binder.after(parent_context->data, data);
+                    /* sûrement binder.after() devrait accepter le paramètre supplémentaire {iterator} pour appeler directement iterator.invalidate() */
+                    if (!binder.after(parent_context->data, data)) {
+                        binder_iter->invalidate();
+                        binder.rollback(&data);
+                    }
                 };
                 /*debug_log << "defined after()" << debug_endl;*/
             } else {
@@ -160,8 +174,9 @@ template <typename EvalType>
             return consume(name);
         }
 
-        template <typename SubOutputType, typename EntityType>
-            void install(const data_binder<EvalType, SubOutputType, EntityType>& binder)
+        template <typename SubOutputType, typename EntityType, typename kls>
+            void install(const data_binder<EvalType, SubOutputType, EntityType>& binder,
+                         iterator<EvalType, kls, data_binder<EvalType, SubOutputType, EntityType>>* binder_iter)
             {
                 typedef typename std::remove_reference<decltype(*binder.install(data))>::type SubContextEvalType;
                 DEBUG;
@@ -170,23 +185,27 @@ template <typename EvalType>
                                 new xml_context<SubContextEvalType>(
                                     parser,
                                     this,
-                                    binder)));
+                                    binder,
+                                    binder_iter)));
 
 
 
                 } else {
-                    error();
+                    error("(internal) Trying to install element binding but not on an element");
                 }
             }
 
-        template <typename SubOutputType>
-            void install(const data_binder<EvalType, SubOutputType, std::string>& binder)
+        template <typename SubOutputType, typename kls>
+            void install(const data_binder<EvalType, SubOutputType, std::string>& binder,
+                         iterator<EvalType, kls, data_binder<EvalType, SubOutputType, std::string>>* binder_iter)
             {
                 DEBUG;
                 if (on_element) {
-                    error();
+                    error("(internal) Trying to install attribute binding but not on an attribute");
                 }
-                binder.after(binder.install(data), &text);
+                if (!binder.after(data, binder.install(data), &text)) {
+                    binder_iter->invalidate();
+                }
             }
     };
 
@@ -218,8 +237,13 @@ struct XMLReader {
         DEBUG;
         Element<_root<EvalType>> pseudo_root("");
         pseudo_root = E(root, &_root<EvalType>::ptr);
-        data_binder<void, _root<EvalType>, Element<_root<EvalType>>> root_binding("", &pseudo_root);
-        xml_context<_root<EvalType>>* context = new xml_context<_root<EvalType>>(parser, static_cast<xml_context<void>*>(nullptr), root_binding);
+        typedef data_binder<void, _root<EvalType>, Element<_root<EvalType>>> root_binder_type;
+        root_binder_type root_binding("", &pseudo_root);
+        typedef iterator<void, single, root_binder_type> root_iter_type;
+        xml_context<_root<EvalType>>* context = new xml_context<_root<EvalType>>(parser,
+                                                                                 static_cast<xml_context<void>*>(nullptr),
+                                                                                 root_binding,
+                                                                                 static_cast<root_iter_type*>(nullptr));
         XML_SetUserData(parser, static_cast<void*>(context));
         try {
             parse(is);
@@ -242,7 +266,9 @@ struct XMLReader {
             std::string value(*attributes++);
             ok = ctx->consume_attribute(key, value);
             if (!ok) {
-                ctx->error();
+                std::stringstream s;
+                s << "Couldn't consume attribute " << key << "=\"" << value << '"';
+                ctx->error(s.str());
             }
         }
         return ok;
@@ -266,7 +292,7 @@ struct XMLReader {
             void *buff = XML_GetBuffer(parser, BUFF_SIZE);
             is.read((char*) buff, BUFF_SIZE);
             if (!XML_ParseBuffer(parser, is.gcount(), is.eof())) {
-                static_cast<xml_context_impl*>(XML_GetUserData(parser))->error();
+                static_cast<xml_context_impl*>(XML_GetUserData(parser))->error("Failed to parse buffer");
             }
         }
     }
@@ -281,10 +307,10 @@ struct XMLReader {
         debug_log << "start " << name << debug_endl;
         xml_context_impl* context = static_cast<xml_context_impl*>(userData);
         if (!context->consume_element(name)) {
-            context->error();
+            context->error("Failed to consume element");
         }
         if (!eat_attributes(context->parser, attrs)) {
-            context->error();
+            context->error("Failed to consume attributes");
         }
         /*static_cast<XMLReader*>(userData)->_start(name, attrs);*/
     }

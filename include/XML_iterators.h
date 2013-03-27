@@ -10,12 +10,6 @@
 
 namespace x2c {
 
-template <typename A, typename B, typename C>
-std::string get_name(const data_binder<A, B, C>& d) { return d.name; }
-
-template <typename kls, typename A, typename B, typename C>
-std::string get_name(const combination<kls, data_binder<A, B, C>>& c) { return std::get<0>(c).name; }
-
 template <typename OutputType>
 struct iterator_base {
     bool state : 1;
@@ -27,6 +21,8 @@ struct iterator_base {
 
     virtual bool accept(const std::string& name) = 0;
     virtual bool consume(const std::string& name, xml_context<OutputType>* context) = 0;
+
+    virtual void invalidate() { state = next = done = 0; }
 
     bool is_good() const { return state; }
     virtual bool is_accepting() const { return next; }
@@ -74,7 +70,7 @@ struct iterator<OutputType, single, data_binder<OutputType, SubOutputType, Entit
         state = accept(name);
         done |= state;
         if (state && context) {
-            context->install(binder);
+            context->install(binder, this);
         }
         next = false;
         return state;
@@ -108,7 +104,7 @@ struct iterator<OutputType, single, data_binder<OutputType, SubOutputType, std::
         state = accept(name);
         /*debug_log << "state=" << state << debug_endl;*/
         if (state && context) {
-            context->install(binder);
+            context->install(binder, this);
         }
         done |= state;
         next = false;
@@ -140,7 +136,7 @@ struct iterator<OutputType, multiple, data_binder<OutputType, SubOutputType, Ent
     {
         state = accept(name);
         if (state && context) {
-            context->install(binder);
+            context->install(binder, this);
         }
         /*if (state) {*/
             /*std::cerr << "[[" << typeid(binder).name() << "]]";*/
@@ -201,21 +197,14 @@ namespace detail {
     };
 
     template <typename OutputType>
-    struct consume_first {
+    struct consume_all {
         const std::string name;
         bool state;
-        bool next;
         xml_context<OutputType>* context;
         template <typename kls, typename... Elements>
             void operator () (iterator<OutputType, kls, Elements...>& i)
             {
-                if (!state) {
-                    state = i.consume(name, context);
-                    next = i.is_accepting();
-                } else {
-                    /* make sure all subsequent iterators are invalidated */
-                    i.consume("", NULL);
-                }
+                state |= i.consume(name, context);
             }
     };
 
@@ -420,7 +409,7 @@ struct iterator<OutputType, alternative, Elements...>
 
     bool consume(const std::string& name, xml_context<OutputType>* context)
     {
-        detail::consume_first<OutputType> first { name, false, false, context };
+        detail::consume_all<OutputType> first { name, false, context };
         iterate_over_tuple(first, contents);
         state = first.state;
         update_next();
