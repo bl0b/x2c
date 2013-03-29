@@ -26,10 +26,10 @@ TEST_CASE( "bad input.2", "Malformed XML" )
         int value;
         Node() : left(0), right(0), value(0)
         {
-            std::cerr << "new node " << this << std::endl;
+            /*std::cerr << "new node " << this << std::endl;*/
         }
         ~Node() {
-            std::cerr << "delete node l=" << left << " r=" << right << std::endl;
+            /*std::cerr << "delete node l=" << left << " r=" << right << std::endl;*/
             if (left) delete left;
             if (right) delete right;
         }

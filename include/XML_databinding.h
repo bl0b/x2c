@@ -644,7 +644,6 @@ struct resolve_bindings_class {
         transform(const elt_alloc_binding<StrucType, FieldType>& eb)
         {
             DEBUG;
-            std::cerr << "has validate ? " << ((bool)eb.validate) << std::endl;
             return { eb.elt->name, eb.field, eb.elt, eb.validate };
         }
 

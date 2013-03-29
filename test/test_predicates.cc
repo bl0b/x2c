@@ -44,12 +44,12 @@ TEST_CASE( "predicates.2", "validating an attribute value" )
 
 bool switch_is_on(std::string* x)
 {
-    std::cerr << "switch ? " << (*x) << std::endl;
+    /*std::cerr << "switch ? " << (*x) << std::endl;*/
     return *x == "on";
 }
 bool switch_is_off(std::string* x)
 {
-    std::cerr << "switch ? " << (*x) << std::endl;
+    /*std::cerr << "switch ? " << (*x) << std::endl;*/
     return *x == "off";
 }
 

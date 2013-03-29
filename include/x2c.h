@@ -119,7 +119,7 @@ template <typename EvalType>
 
             rollback = [binder, this] ()
             {
-                std::cerr << this << " ROLLBACK" << std::endl;
+                /*std::cerr << this << " ROLLBACK" << std::endl;*/
                 binder.rollback(&data);
                 after = [] () {};
             };
