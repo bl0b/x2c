@@ -27,6 +27,8 @@ struct unconst_value_type { typedef ValueType type; };
 template <typename K, typename V>
 struct unconst_value_type<std::pair<const K, V>> { typedef std::pair<K, V> type; };
 
+template <typename Coll>
+using mutable_value_type = typename unconst_value_type<typename Coll::value_type>::type;
 
 template <typename EvalType>
 struct Entity {
@@ -34,6 +36,7 @@ struct Entity {
 
     std::string name;
     Entity(const std::string& n) : name(n) {}
+    Entity(const Entity<EvalType>& e) : name(e.name) {}
 };
 
 
@@ -50,133 +53,152 @@ struct attr_eval {
 };
 
 
+template <typename EvalType, typename Derived>
+struct with_validation {
+    data_validator<EvalType> validate;
+
+    with_validation(data_validator<EvalType> pred)
+    {
+        validate = pred;
+        std::cerr << typeid(Derived).name() << " val=" << ((bool)validate) << std::endl;
+    }
+
+    with_validation(const with_validation<EvalType, Derived>& wv)
+    {
+        validate = wv.validate;
+    }
+
+    template <typename Predicate>
+        Derived&
+        operator /= (Predicate pred)
+        {
+            data_validator<EvalType> previous = validate;
+            validate = [previous, pred] (EvalType* x) { return previous(x) && pred(x); };
+            return *static_cast<Derived*>(this);
+        }
+
+    template <typename Predicate>
+        Derived&
+        operator / (Predicate pred)
+        {
+            Derived ret(*static_cast<Derived*>(this));
+            return (ret /= pred);
+        }
+};
+
+
 template <typename StrucType, typename FieldType>
-struct attr_binding : public Entity<FieldType StrucType::*> {
+struct attr_binding : public Entity<FieldType StrucType::*>,
+                      public with_validation<FieldType, attr_binding<StrucType, FieldType>> {
     using Entity<FieldType StrucType::*>::name;
+    typedef with_validation<FieldType, attr_binding<StrucType, FieldType>> validation_type;
 
     typedef std::string entity_type;
     typedef FieldType eval_type;
 
     FieldType StrucType::* field;
 
-    data_validator<FieldType> validate;
-
     attr_binding(const std::string& n, FieldType StrucType::* f, data_validator<FieldType>& dv)
-        : Entity<FieldType StrucType::*>(n), field(f), validate(dv)
-    {}
-    attr_binding(std::string && n, FieldType StrucType::* f, data_validator<FieldType>& dv)
-        : Entity<FieldType StrucType::*>(n), field(f), validate(dv)
+        : Entity<FieldType StrucType::*>(n), validation_type(dv), field(f)
     {}
 
-    template <typename Predicate>
-    attr_binding<StrucType, FieldType>
-        operator / (Predicate pred)
-        {
-            data_validator<FieldType> prev = validate;
-            data_validator<FieldType> v = [prev, pred] (FieldType* x) { return prev(x) && pred(x); };
-            return attr_binding<StrucType, FieldType>(name, field, v);
-        }
+    attr_binding(const attr_binding<StrucType, FieldType>& ab)
+        : Entity<FieldType StrucType::*>(ab)
+        , validation_type(ab)
+        , field(ab.field)
+    {}
 };
 
 
 template <>
-struct attr_binding<ignore, std::string> {
+struct attr_binding<ignore, std::string> : public with_validation<std::string, attr_binding<ignore, std::string>> {
     typedef std::string entity_type;
     typedef std::string eval_type;
+    typedef with_validation<std::string, attr_binding<ignore, std::string>> validation_type;
 
     std::string name;
-    data_validator<std::string> validate;
 
     attr_binding(const std::string& n, data_validator<std::string>& dv)
-        : name(n), validate(dv)
+        : validation_type(dv), name(n)
     {}
 
-    template <typename Predicate>
-    attr_binding<ignore, std::string>
-        operator / (Predicate pred)
-        {
-            data_validator<std::string> prev = validate;
-            data_validator<std::string> v = [prev, pred] (std::string* x) { return prev(x) && pred(x); };
-            return attr_binding<ignore, std::string>(name, v);
-        }
+    attr_binding(const attr_binding<ignore, std::string>& ab)
+        : validation_type(ab), name(ab.name)
+    {}
 };
 
 
 template <typename StrucType, typename FieldType>
-struct elt_binding {
+struct elt_binding : public with_validation<FieldType, elt_binding<StrucType, FieldType>> {
     typedef Element<FieldType> entity_type;
     typedef FieldType StrucType::* eval_type;
+    typedef with_validation<FieldType, elt_binding<StrucType, FieldType>> validation_type;
 
     const entity_type* elt;
     eval_type field;
-    data_validator<FieldType> validate;
 
     elt_binding(const Element<FieldType>* e, eval_type f, data_validator<FieldType>& dv)
-        : elt(e), field(f), validate(dv)
+        : validation_type(dv), elt(e), field(f)
     {}
 
-    attr_binding<StrucType, FieldType>
-        operator / (data_validator<FieldType> v)
-        {
-            return { elt, field, [this, v] (FieldType* x) { return validate(*x) && v(*x); } };
-        }
+    elt_binding(const elt_binding<StrucType, FieldType>& eb)
+        : validation_type(eb), elt(eb.elt), field(eb.field)
+    {}
 };
 
 
 template <typename FieldType>
-struct elt_binding<ignore, FieldType> {
+struct elt_binding<ignore, FieldType> : public with_validation<FieldType, elt_binding<ignore, FieldType>> {
     typedef Element<FieldType> entity_type;
     typedef FieldType eval_type;
+    typedef with_validation<FieldType, elt_binding<ignore, FieldType>> validation_type;
 
     const entity_type* elt;
-    data_validator<FieldType> validate;
 
     elt_binding(const Element<FieldType>* e, data_validator<FieldType>& dv)
-        : elt(e), validate(dv)
+        : validation_type(dv), elt(e)
     {}
 
-    attr_binding<ignore, FieldType>
-        operator / (data_validator<FieldType> v)
-        {
-            return { elt, [this, v] (FieldType* x) { return validate(*x) && v(*x); } };
-        }
+    elt_binding(const elt_binding<ignore, FieldType>& e)
+        : validation_type(e), elt(e.elt)
+    {}
 };
 
 template <typename StrucType, typename CollType>
-struct elt_coll_binding {
+struct elt_coll_binding : public with_validation<mutable_value_type<CollType>, elt_coll_binding<StrucType, CollType>> {
     typedef CollType collection_type;
-    typedef typename unconst_value_type<typename collection_type::value_type>::type value_type;
+    typedef mutable_value_type<CollType> value_type;
     typedef Element<value_type> entity_type;
+    typedef with_validation<mutable_value_type<CollType>, elt_coll_binding<StrucType, CollType>> validation_type;
 
     const entity_type* elt;
     collection_type StrucType::* field;
-    data_validator<value_type> validate;
 
-    elt_coll_binding<StrucType, CollType>
-        operator / (data_validator<value_type> v)
-        {
-            return { elt, field, [this, v] (value_type* x) { return validate(*x) && v(*x); } };
-        }
+    elt_coll_binding(const entity_type* e, collection_type StrucType::* f, data_validator<value_type> dv)
+        : validation_type(dv), elt(e), field(f)
+    {}
+
+    elt_coll_binding(const elt_coll_binding<StrucType, CollType>& ecb)
+        : validation_type(ecb), elt(ecb.elt), field(ecb.field)
+    {}
 };
 
 template <typename StrucType, typename FieldType>
-struct elt_alloc_binding {
+struct elt_alloc_binding : public with_validation<FieldType, elt_alloc_binding<StrucType, FieldType>> {
     typedef Element<FieldType> entity_type;
     typedef FieldType* StrucType::* eval_type;
+    typedef with_validation<FieldType, elt_alloc_binding<StrucType, FieldType>> validation_type;
 
     const entity_type* elt;
     eval_type field;
-    data_validator<FieldType> validate;
 
-    elt_alloc_binding(const Element<FieldType>* e, eval_type f, data_validator<FieldType>& dv)
-        : elt(e), field(f), validate(dv)
+    elt_alloc_binding(const Element<FieldType>* e, eval_type f, data_validator<FieldType> dv)
+        : validation_type(dv), elt(e), field(f)
     {}
 
-    attr_binding<StrucType, FieldType>
-        operator / (data_validator<FieldType*> v)
-        {
-            return { elt, field, [this, v] (FieldType* x) { return validate(x) && v(x); } };
-        }
+    elt_alloc_binding(const elt_alloc_binding<StrucType, FieldType>& eab)
+        : validation_type(eab), elt(eab.elt), field(eab.field)
+    {}
 };
 
 
