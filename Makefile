@@ -3,13 +3,13 @@ INSTALL_DIR=/usr/local/include/x2c
 all: .test
 
 .test:
-	cd test && make
+	+cd test && make
 
 test-coverage:
-	cd test && make $@
+	+cd test && make $@
 
 clean:
-	cd test && make clean
+	+cd test && make clean
 
 install: .test
 	mkdir -p $(INSTALL_DIR)
