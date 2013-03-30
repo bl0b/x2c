@@ -15,7 +15,7 @@ template <> struct optional<single> {};
 template <> struct optional<multiple> {};
 
 
-#if !defined(NDEBUG)
+#if defined(DEBUG_X2C) && !defined(NDEBUG)
 #include <iostream>
 #include <iomanip>
 
