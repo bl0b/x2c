@@ -316,12 +316,15 @@ struct XMLReader {
 
     void parse(std::istream& is)
     {
-        while (!is.eof()) {
+        while (is.good() && !is.eof()) {
             void *buff = XML_GetBuffer(parser, BUFF_SIZE);
             is.read((char*) buff, BUFF_SIZE);
             if (!XML_ParseBuffer(parser, is.gcount(), is.eof())) {
                 static_cast<xml_context_impl*>(XML_GetUserData(parser))->error("Failed to parse buffer");
             }
+        }
+        if (!is.eof()) {
+            static_cast<xml_context_impl*>(XML_GetUserData(parser))->error("Failed to parse buffer");
         }
     }
 
