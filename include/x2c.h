@@ -413,21 +413,23 @@ struct Element : public Entity<EvalType> {
 
 }
 
-#define DTD_START(dtd_name, root_name, eval_type) \
+#define DTD_START_WITH_ROOT_NAME(dtd_name, root_name, root_xml_name, eval_type) \
     struct dtd_name ## _type { \
-        Element<eval_type> root_name; \
-        const Element<eval_type>& root() const { return root_name; } \
+        ::x2c::Element<eval_type> root_name; \
+        const ::x2c::Element<eval_type>& root() const { return root_name; } \
         eval_type* parse(std::istream& is) \
         { \
             DEBUG; \
-            return XMLReader().parse_from(root_name, is); \
+            return ::x2c::XMLReader().parse_from(root_name, is); \
         } \
         dtd_name ## _type () \
-            : root_name(#root_name) \
+            : root_name(root_xml_name) \
         {
 
+#define DTD_START(dtd_name, root_name, eval_type) DTD_START_WITH_ROOT_NAME(dtd_name, root_name, #root_name, eval_type)
 
-#define ELEMENT(elt_name, eval_type) static Element<eval_type> elt_name(#elt_name)
+#define ELEMENT_WITH_NAME(elt_name, elt_xml_name, eval_type) static ::x2c::Element<eval_type> elt_name(elt_xml_name)
+#define ELEMENT(elt_name, eval_type) ELEMENT_WITH_NAME(elt_name, #elt_name, eval_type)
 
 
 #define DTD_END(dtd_name) \
