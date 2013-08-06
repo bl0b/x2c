@@ -542,6 +542,13 @@ E(const Element<ManipulatorOrTransient>& elt)
     return { &elt };
 }
 
+template <typename Anything>
+combination<multiple, Anything>
+M(const combination<single, Anything>& c)
+{
+    return { std::get<0>(c) };
+}
+
 
 template <typename IntegralType>
 struct resolve_bindings_integral {
