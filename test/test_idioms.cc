@@ -203,7 +203,7 @@ TEST_CASE( "idiom 5.3", "attribute transformation in structure" )
     DTD_END(test_dtd);
 
     std::stringstream iss;
-    iss << R"(<test value="no" toto="blah"/>)";
+    iss << R"(<pouet value="no" toto="blah"/>)";
     pouet* output = NULL;
     REQUIRE_NOTHROW(output = test_dtd.parse(iss));
     REQUIRE(output != NULL);

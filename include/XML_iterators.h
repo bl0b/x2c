@@ -457,10 +457,17 @@ struct iterator_collection : public iterator_base<OutputType> {
             {
                 return { comb };
             }
-        template <typename AnyOutputType, typename AnyKls, typename AnyEntityType>
+
             static
-            iterator<OutputType, AnyKls, data_binder<typename attr_func<AnyOutputType>::func_type, AnyOutputType, AnyEntityType>>
-            transform(const combination<AnyKls, data_binder<typename attr_func<AnyOutputType>::func_type, AnyOutputType, AnyEntityType>>& comb)
+            iterator<OutputType, single, data_binder<typename attr_func<OutputType>::func_type, OutputType, std::string>>
+            transform(const combination<single, data_binder<typename attr_func<OutputType>::func_type, OutputType, std::string>>& comb)
+            {
+                return { comb };
+            }
+
+            static
+            iterator<OutputType, optional<single>, data_binder<typename attr_func<OutputType>::func_type, OutputType, std::string>>
+            transform(const combination<optional<single>, data_binder<typename attr_func<OutputType>::func_type, OutputType, std::string>>& comb)
             {
                 return { comb };
             }

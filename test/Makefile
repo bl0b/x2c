@@ -4,7 +4,7 @@ SRC=test_main.cc test_structure.cc test_idioms.cc test_xml_structure.cc test_inp
 OBJ=$(subst .cc,.o,$(SRC))
 COV_OBJ=$(subst .cc,.cov.o,$(SRC))
 
-DEBUG_OPTS=-gdwarf-2 -gstrict-dwarf
+DEBUG_OPTS=-gdwarf-2 -gstrict-dwarf -ftemplate-backtrace-limit=0
 
 COV_OPTS=-g -fprofile-arcs -ftest-coverage
 COV_OPTS=$(DEBUG_OPTS) --coverage
