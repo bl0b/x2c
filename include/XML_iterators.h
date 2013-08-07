@@ -217,15 +217,15 @@ struct iterator<OutputType, single, data_binder<OutputType, SubOutputType, std::
     }
 };
 
-template <typename OutputType, typename SubOutputType>
-struct iterator<OutputType, single, data_binder<typename attr_func<OutputType>::func_type, SubOutputType, std::string>> : public iterator_base<OutputType> {
+template <typename OutputType>
+struct iterator<OutputType, single, data_binder<typename attr_func<OutputType>::func_type, OutputType, std::string>> : public iterator_base<OutputType> {
     using iterator_base<OutputType>::state;
     using iterator_base<OutputType>::next;
     using iterator_base<OutputType>::done;
 
-    data_binder<typename attr_func<OutputType>::func_type, SubOutputType, std::string> binder;
+    data_binder<typename attr_func<OutputType>::func_type, OutputType, std::string> binder;
 
-    iterator(const combination<single, data_binder<typename attr_func<OutputType>::func_type, SubOutputType, std::string>>& comb)
+    iterator(const combination<single, data_binder<typename attr_func<OutputType>::func_type, OutputType, std::string>>& comb)
         : iterator_base<OutputType>(false), binder(std::get<0>(comb))
     {
         /*debug_log << "ITERATOR on " << binder.name << debug_endl;*/
@@ -454,6 +454,13 @@ struct iterator_collection : public iterator_base<OutputType> {
             static
             iterator<OutputType, AnyKls, data_binder<ignore, AnyOutputType, AnyEntityType>>
             transform(const combination<AnyKls, data_binder<ignore, AnyOutputType, AnyEntityType>>& comb)
+            {
+                return { comb };
+            }
+        template <typename AnyOutputType, typename AnyKls, typename AnyEntityType>
+            static
+            iterator<OutputType, AnyKls, data_binder<typename attr_func<AnyOutputType>::func_type, AnyOutputType, AnyEntityType>>
+            transform(const combination<AnyKls, data_binder<typename attr_func<AnyOutputType>::func_type, AnyOutputType, AnyEntityType>>& comb)
             {
                 return { comb };
             }
