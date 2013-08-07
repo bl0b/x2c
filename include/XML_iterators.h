@@ -217,6 +217,40 @@ struct iterator<OutputType, single, data_binder<OutputType, SubOutputType, std::
     }
 };
 
+template <typename OutputType, typename SubOutputType>
+struct iterator<OutputType, single, data_binder<typename attr_func<OutputType>::func_type, SubOutputType, std::string>> : public iterator_base<OutputType> {
+    using iterator_base<OutputType>::state;
+    using iterator_base<OutputType>::next;
+    using iterator_base<OutputType>::done;
+
+    data_binder<typename attr_func<OutputType>::func_type, SubOutputType, std::string> binder;
+
+    iterator(const combination<single, data_binder<typename attr_func<OutputType>::func_type, SubOutputType, std::string>>& comb)
+        : iterator_base<OutputType>(false), binder(std::get<0>(comb))
+    {
+        /*debug_log << "ITERATOR on " << binder.name << debug_endl;*/
+    }
+
+    bool accept(const std::string& name)
+    {
+        /*debug_log << "accept? " << name << " vs " << binder.name << ", next=" << next << debug_endl;*/
+        return next && name == binder.name;
+    }
+
+    bool consume(const std::string& name, xml_context<OutputType>* context)
+    {
+        DEBUG;
+        state = accept(name);
+        /*debug_log << "state=" << state << debug_endl;*/
+        if (state && context) {
+            context->install(binder, this);
+        }
+        done |= state;
+        next = false;
+        return state;
+    }
+};
+
 
 template <typename OutputType, typename SubOutputType, typename EntityType>
 struct iterator<OutputType, multiple, data_binder<OutputType, SubOutputType, EntityType>> : public iterator_base<OutputType> {

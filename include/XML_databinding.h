@@ -308,6 +308,57 @@ struct data_binder<EvalType, EvalType, std::string> {
     }
 };
 
+/* attribute and chardata transformation binding */
+template <typename EvalType>
+struct data_binder<typename attr_func<EvalType>::func_type, EvalType, std::string> {
+    const std::string name;
+    typedef std::string entity_type;
+    typedef EvalType value_type;
+    typedef typename attr_func<EvalType>::func_type func_type;
+
+    data_validator<value_type> validate;
+    func_type transformer;
+
+    data_binder(const std::string& n, func_type f)
+        : name(n), validate([] (value_type*) { return true; }), transformer(f)
+    {
+        if (!validate) { std::cerr << "INVALID VALIDATOR " << __FILE__ << ':' << __LINE__ << std::endl; }
+        if (!transformer) { std::cerr << "INVALID TRANSFORMER " << __FILE__ << ':' << __LINE__ << std::endl; }
+    }
+
+    data_binder(const data_binder<typename attr_func<EvalType>::func_type, EvalType, std::string>& d)
+        : name(d.name), validate(d.validate), transformer(d.transformer)
+    {
+        if (!validate) { std::cerr << "INVALID VALIDATOR " << __FILE__ << ':' << __LINE__ << std::endl; }
+        if (!transformer) { std::cerr << "INVALID TRANSFORMER " << __FILE__ << ':' << __LINE__ << std::endl; }
+    }
+
+    EvalType* install(EvalType* container) const
+    {
+        return new EvalType();
+    }
+
+    bool after(EvalType* container, EvalType* ptr, std::string* data) const
+    {
+        DEBUG;
+        delete_on_scope_exit<EvalType> _ = { ptr };
+        /*from_string(*data, *ptr);*/
+        if (transformer(data, ptr) && validate(ptr)) {
+            *container = *ptr;
+            return true;
+        }
+        return false;
+        /*debug_log << "converted => " << (*container) << debug_endl;*/
+        /*return validate(container);*/
+    }
+
+    void rollback(EvalType** ptr) const
+    {
+        /*std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << ptr << ' ' << (*ptr) << std::endl;*/
+        (void)ptr;
+    }
+};
+
 
 /* no binding : validate and discard attribute/chardata */
 template <typename EvalType>
@@ -466,6 +517,13 @@ A(const char* name)
     return { { name } };
 }
 
+template <typename EvalType>
+combination<single, attr_func<EvalType>>
+A(const char* name, std::function<bool(const std::string*, EvalType*)> f)
+{
+    return { { name, f } };
+}
+
 
 template <typename StrucType, typename FieldType>
 combination<single, attr_binding<StrucType, FieldType>>
@@ -563,6 +621,15 @@ struct resolve_bindings_integral {
             return { e->name, e, &_true_<ManipulatorOrTransient>::_ };
         }
 
+    /* attr func */
+    static
+    data_binder<typename attr_func<IntegralType>::func_type, IntegralType, std::string>
+    transform(const attr_func<IntegralType> & ae)
+    {
+        DEBUG;
+        return { ae.name, ae.func };
+    }
+
     /* attr eval_to */
     static
     data_binder<IntegralType, IntegralType, std::string>
@@ -614,6 +681,15 @@ struct resolve_bindings_class {
             debug_log << e->name << debug_endl;
             return { e->name, e, &_true_<ManipulatorOrTransient>::_ };
         }
+
+    /* attr func */
+    static
+    data_binder<typename attr_func<StrucType>::func_type, StrucType, std::string>
+    transform(const attr_func<StrucType> & ae)
+    {
+        DEBUG;
+        return { ae.name, ae.func };
+    }
 
     /* attr eval_to */
     static

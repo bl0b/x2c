@@ -143,3 +143,46 @@ TEST_CASE( "idiom 4.2", "ignoring an element" )
     delete output;
 }
 
+std::function<bool(const std::string*, bool*)>
+conv_bool = [](const std::string* s, bool* ret)
+{
+    if (*s == "true" || *s == "yes" || *s == "on") {
+        *ret = true;
+        return true;
+    } else if (*s == "false" || *s == "no" || *s == "off") {
+        *ret = false;
+        return true;
+    }
+    return false;
+};
+
+TEST_CASE( "idiom 5.1", "attribute transformation" )
+{
+    DTD_START(test_dtd, test, bool)
+        test = A("value", conv_bool);
+    DTD_END(test_dtd);
+
+    std::stringstream iss;
+    iss << R"(<test value="yes"/>)";
+    bool* output = NULL;
+    REQUIRE_NOTHROW(output = test_dtd.parse(iss));
+    REQUIRE(output != NULL);
+    REQUIRE(*output);
+    delete output;
+}
+
+TEST_CASE( "idiom 5.2", "attribute transformation" )
+{
+    DTD_START(test_dtd, test, bool)
+        test = A("value", conv_bool);
+    DTD_END(test_dtd);
+
+    std::stringstream iss;
+    iss << R"(<test value="no"/>)";
+    bool* output = NULL;
+    REQUIRE_NOTHROW(output = test_dtd.parse(iss));
+    REQUIRE(output != NULL);
+    REQUIRE(!*output);
+    delete output;
+}
+

@@ -52,6 +52,16 @@ struct attr_eval {
     attr_eval(const std::string& s) : name(s) {}
 };
 
+template <typename EvalType>
+struct attr_func {
+    typedef std::string entity_type;
+    typedef EvalType eval_type;
+    typedef std::function<bool(const std::string*, EvalType*)> func_type;
+    std::string name;
+    func_type func;
+    attr_func(const std::string& s, func_type f) : name(s), func(f) {}
+};
+
 
 template <typename EvalType, typename Derived>
 struct with_validation {

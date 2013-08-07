@@ -193,6 +193,19 @@ template <typename EvalType>
             }
 
         template <typename SubOutputType, typename kls>
+            void install(const data_binder<typename attr_func<SubOutputType>::func_type, SubOutputType, std::string>& binder,
+                         iterator<EvalType, kls, data_binder<typename attr_func<SubOutputType>::func_type, SubOutputType, std::string>>* binder_iter)
+            {
+                DEBUG;
+                if (on_element) {
+                    error("(internal) Trying to install attribute binding but not on an attribute");
+                }
+                if (!binder.after(data, binder.install(data), &text)) {
+                    binder_iter->invalidate();
+                }
+            }
+
+        template <typename SubOutputType, typename kls>
             void install(const data_binder<ignore, SubOutputType, std::string>& binder,
                          iterator<EvalType, kls, data_binder<ignore, SubOutputType, std::string>>* binder_iter)
             {
@@ -415,7 +428,8 @@ struct Element : public Entity<EvalType> {
 
 #define DTD_START_WITH_ROOT_NAME(dtd_name, root_name, root_xml_name, eval_type) \
     struct dtd_name ## _type { \
-        ::x2c::Element<eval_type> root_name; \
+        typedef eval_type type; \
+        ::x2c::Element<type> root_name; \
         const ::x2c::Element<eval_type>& root() const { return root_name; } \
         eval_type* parse(std::istream& is) \
         { \

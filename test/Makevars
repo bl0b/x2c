@@ -1,6 +1,6 @@
-CXX=g++-4.8
+CXX=g++-4.9
 CXXARGS=--std=gnu++0x -Wall
-COV=gcov-4.8
+COV=gcov-4.9
 
 INC=-I$(ROOT_DIR)../include
 
