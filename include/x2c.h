@@ -427,10 +427,10 @@ struct Element : public Entity<EvalType> {
 }
 
 
-#define DTD_FORWARD_DECL(dtd_name) struct dtd_name ## _type
+#define DTD_FORWARD_DECL(dtd_name, eval_type) struct dtd_name ## _type; const ::x2c::Element<eval_type>& dtd_name ## _root();
 
 #define DTD_START_WITH_ROOT_NAME(dtd_name, root_name, root_xml_name, eval_type) \
-    DTD_FORWARD_DECL(dtd_name) { \
+    struct dtd_name ## _type { \
         typedef eval_type type; \
         ::x2c::Element<type> root_name; \
         const ::x2c::Element<eval_type>& root() const { return root_name; } \
@@ -451,7 +451,9 @@ struct Element : public Entity<EvalType> {
 
 #define DTD_END(dtd_name) \
         } \
-    } dtd_name
+    } dtd_name;
+
+#define DTD_ACCESSOR(dtd_name) const ::x2c::Element<dtd_name ## _type :: type>& dtd_name ## _root() { return dtd_name.root(); }
 
 
 

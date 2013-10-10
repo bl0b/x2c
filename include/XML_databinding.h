@@ -335,16 +335,16 @@ struct data_binder<typename attr_func<EvalType>::func_type, EvalType, std::strin
 
     EvalType* install(EvalType* container) const
     {
-        return new EvalType();
+        /*return new EvalType();*/
+        return container;
     }
 
     bool after(EvalType* container, EvalType* ptr, std::string* data) const
     {
         DEBUG;
-        delete_on_scope_exit<EvalType> _ = { ptr };
+        /*delete_on_scope_exit<EvalType> _ = { ptr };*/
         /*from_string(*data, *ptr);*/
-        if (transformer(data, ptr) && validate(ptr)) {
-            *container = *ptr;
+        if (transformer(data, container) && validate(container)) {
             return true;
         }
         return false;
