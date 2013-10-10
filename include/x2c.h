@@ -426,8 +426,11 @@ struct Element : public Entity<EvalType> {
 
 }
 
+
+#define DTD_FORWARD_DECL(dtd_name) struct dtd_name ## _type
+
 #define DTD_START_WITH_ROOT_NAME(dtd_name, root_name, root_xml_name, eval_type) \
-    struct dtd_name ## _type { \
+    DTD_FORWARD_DECL(dtd_name) { \
         typedef eval_type type; \
         ::x2c::Element<type> root_name; \
         const ::x2c::Element<eval_type>& root() const { return root_name; } \
