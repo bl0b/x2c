@@ -56,7 +56,7 @@ struct iterator<OutputType, single, data_binder<ignore, SubOutputType, EntityTyp
     iterator(const combination<single, data_binder<ignore, SubOutputType, EntityType>>& comb)
         : iterator_base<OutputType>(false), binder(std::get<0>(comb))
     {
-        /*debug_log << "ITERATOR on " << binder.name << debug_endl;*/
+        /*DEBUG_LOG("ITERATOR on " << binder.name << std::endl);*/
     }
 
     bool accept(const std::string& name)
@@ -89,12 +89,12 @@ struct iterator<OutputType, single, data_binder<ignore, SubOutputType, std::stri
     iterator(const combination<single, data_binder<ignore, SubOutputType, std::string>>& comb)
         : iterator_base<OutputType>(false), binder(std::get<0>(comb))
     {
-        /*debug_log << "ITERATOR on " << binder.name << debug_endl;*/
+        /*DEBUG_LOG("ITERATOR on " << binder.name << std::endl);*/
     }
 
     bool accept(const std::string& name)
     {
-        /*debug_log << "accept? " << name << " vs " << binder.name << ", next=" << next << debug_endl;*/
+        /*DEBUG_LOG("accept? " << name << " vs " << binder.name << ", next=" << next << std::endl);*/
         return next && name == binder.name;
     }
 
@@ -102,7 +102,7 @@ struct iterator<OutputType, single, data_binder<ignore, SubOutputType, std::stri
     {
         DEBUG;
         state = accept(name);
-        /*debug_log << "state=" << state << debug_endl;*/
+        /*DEBUG_LOG("state=" << state << std::endl);*/
         if (state && context) {
             context->install(binder, this);
         }
@@ -124,7 +124,7 @@ struct iterator<OutputType, multiple, data_binder<ignore, SubOutputType, EntityT
     iterator(const combination<multiple, data_binder<ignore, SubOutputType, EntityType>>& comb)
         : iterator_base<OutputType>(false), binder(std::get<0>(comb))
     {
-        /*debug_log << "ITERATOR on " << binder.name << debug_endl;*/
+        /*DEBUG_LOG("ITERATOR on " << binder.name << std::endl);*/
     }
 
     bool accept(const std::string& name)
@@ -139,9 +139,9 @@ struct iterator<OutputType, multiple, data_binder<ignore, SubOutputType, EntityT
             context->install(binder, this);
         }
         /*if (state) {*/
-            /*std::cerr << "[[" << typeid(binder).name() << "]]";*/
+            /*X2C_ERR("[[" << TYPEID(BINDER).NAME() << "]]");*/
         /*} else {*/
-            /*std::cerr << "[[FAILED]]";*/
+            /*X2C_ERR("[[FAILED]]");*/
         /*}*/
         done |= state;
         next = state;
@@ -161,7 +161,7 @@ struct iterator<OutputType, single, data_binder<OutputType, SubOutputType, Entit
     iterator(const combination<single, data_binder<OutputType, SubOutputType, EntityType>>& comb)
         : iterator_base<OutputType>(false), binder(std::get<0>(comb))
     {
-        /*debug_log << "ITERATOR on " << binder.name << debug_endl;*/
+        /*DEBUG_LOG("ITERATOR on " << binder.name << std::endl);*/
     }
 
     bool accept(const std::string& name)
@@ -194,12 +194,12 @@ struct iterator<OutputType, single, data_binder<OutputType, SubOutputType, std::
     iterator(const combination<single, data_binder<OutputType, SubOutputType, std::string>>& comb)
         : iterator_base<OutputType>(false), binder(std::get<0>(comb))
     {
-        /*debug_log << "ITERATOR on " << binder.name << debug_endl;*/
+        /*DEBUG_LOG("ITERATOR on " << binder.name << std::endl);*/
     }
 
     bool accept(const std::string& name)
     {
-        /*debug_log << "accept? " << name << " vs " << binder.name << ", next=" << next << debug_endl;*/
+        /*DEBUG_LOG("accept? " << name << " vs " << binder.name << ", next=" << next << std::endl);*/
         return next && name == binder.name;
     }
 
@@ -207,7 +207,7 @@ struct iterator<OutputType, single, data_binder<OutputType, SubOutputType, std::
     {
         DEBUG;
         state = accept(name);
-        /*debug_log << "state=" << state << debug_endl;*/
+        /*DEBUG_LOG("state=" << state << std::endl);*/
         if (state && context) {
             context->install(binder, this);
         }
@@ -228,12 +228,12 @@ struct iterator<OutputType, single, data_binder<typename attr_func<OutputType>::
     iterator(const combination<single, data_binder<typename attr_func<OutputType>::func_type, OutputType, std::string>>& comb)
         : iterator_base<OutputType>(false), binder(std::get<0>(comb))
     {
-        /*debug_log << "ITERATOR on " << binder.name << debug_endl;*/
+        /*DEBUG_LOG("ITERATOR on " << binder.name << std::endl);*/
     }
 
     bool accept(const std::string& name)
     {
-        /*debug_log << "accept? " << name << " vs " << binder.name << ", next=" << next << debug_endl;*/
+        /*DEBUG_LOG("accept? " << name << " vs " << binder.name << ", next=" << next << std::endl);*/
         return next && name == binder.name;
     }
 
@@ -241,7 +241,7 @@ struct iterator<OutputType, single, data_binder<typename attr_func<OutputType>::
     {
         DEBUG;
         state = accept(name);
-        /*debug_log << "state=" << state << debug_endl;*/
+        /*DEBUG_LOG("state=" << state << std::endl);*/
         if (state && context) {
             context->install(binder, this);
         }
@@ -263,7 +263,7 @@ struct iterator<OutputType, multiple, data_binder<OutputType, SubOutputType, Ent
     iterator(const combination<multiple, data_binder<OutputType, SubOutputType, EntityType>>& comb)
         : iterator_base<OutputType>(false), binder(std::get<0>(comb))
     {
-        /*debug_log << "ITERATOR on " << binder.name << debug_endl;*/
+        /*DEBUG_LOG("ITERATOR on " << binder.name << std::endl);*/
     }
 
     bool accept(const std::string& name)
@@ -278,9 +278,9 @@ struct iterator<OutputType, multiple, data_binder<OutputType, SubOutputType, Ent
             context->install(binder, this);
         }
         /*if (state) {*/
-            /*std::cerr << "[[" << typeid(binder).name() << "]]";*/
+            /*X2C_ERR("[[" << TYPEID(BINDER).NAME() << "]]");*/
         /*} else {*/
-            /*std::cerr << "[[FAILED]]";*/
+            /*X2C_ERR("[[FAILED]]");*/
         /*}*/
         done |= state;
         next = state;
@@ -367,7 +367,7 @@ namespace detail {
         template <typename Iterator>
             void operator () (size_t index, Iterator& i)
             {
-                /*std::cerr << std::endl << "accepting '" << name << "' index=" << index << " current=" << current << " last=" << last << " i.is_done()=" << i.is_done() << " ret=" << ret << std::endl;*/
+                /*X2C_ERR(STD::ENDL << "ACCEPTING '" << NAME << "' INDEX=" << INDEX << " CURRENT=" << CURRENT << " LAST=" << LAST << " I.IS_DONE()=" << I.IS_DONE() << " RET=" << RET << STD::ENDL);*/
                 if (index == current) {
                     ret = i.accept(name);
                     if (!ret && i.is_done() && current < last) {
@@ -615,7 +615,7 @@ struct iterator<OutputType, ordered_sequence, Elements...>
         current = cur.current;
         state = cur.state;
         next = cur.next;
-        /*std::cerr << '<' << current << ' ' << state << ' ' << next << '>' << std::endl;*/
+        /*X2C_ERR('<' << CURRENT << ' ' << STATE << ' ' << NEXT << '>' << STD::ENDL);*/
         return state;
     }
 

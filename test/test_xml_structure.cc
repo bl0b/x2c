@@ -91,7 +91,7 @@ struct Manip {
     Manip() : factor(1.) {}
     void operator () (Foo& f)
     {
-        debug_log << "factor is " << factor << debug_endl;
+        DEBUG_LOG("factor is " << factor << std::endl);
         f.b *= factor;
     }
 };

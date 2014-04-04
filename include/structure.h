@@ -93,15 +93,15 @@ struct combination : public std::tuple<Items...>, public virtual combination_bas
 
     combination(Items ... y)
         : std::tuple<Items...>(y...)
-    { debug_log << "ctor " << demangle(typeid(*this).name()) << debug_endl; }
+    { DEBUG_LOG("ctor " << demangle(typeid(*this).name()) << std::endl); }
 
     combination(const combination<kls, Items...>& c)
         : std::tuple<Items...>(c)
-    { debug_log << "copy ctor " << demangle(typeid(*this).name()) << debug_endl; }
+    { DEBUG_LOG("copy ctor " << demangle(typeid(*this).name()) << std::endl); }
 
     combination(const std::tuple<Items...>& c)
         : std::tuple<Items...>(c)
-    { debug_log << "tuple copy ctor " << demangle(typeid(*this).name()) << debug_endl; }
+    { DEBUG_LOG("tuple copy ctor " << demangle(typeid(*this).name()) << std::endl); }
 
     template <typename IndexTuple, typename Item> struct combinator_helper;
     template <int... Index, typename Item>

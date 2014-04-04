@@ -70,7 +70,7 @@ struct with_validation {
     with_validation(data_validator<EvalType> pred)
     {
         validate = pred;
-        /*std::cerr << typeid(Derived).name() << " val=" << ((bool)validate) << std::endl;*/
+        /*X2C_ERR(TYPEID(DERIVED).NAME() << " VAL=" << ((BOOL)VALIDATE) << STD::ENDL);*/
     }
 
     with_validation(const with_validation<EvalType, Derived>& wv)

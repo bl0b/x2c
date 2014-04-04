@@ -39,10 +39,10 @@ struct data_binder<void, RootType, Element<RootType>> {
 
     void rollback(RootType** ptr) const
     {
-        /*std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << ptr << ' ' << (*ptr) << std::endl;*/
+        /*X2C_ERR("ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << PTR << ' ' << (*PTR) << STD::ENDL);*/
         delete *ptr;
         *ptr = nullptr;
-        /*std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << ptr << ' ' << (*ptr) << std::endl;*/
+        /*X2C_ERR("ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << PTR << ' ' << (*PTR) << STD::ENDL);*/
     }
 };
 
@@ -59,7 +59,7 @@ struct data_binder<ignore, EvalType, Element<EvalType>> {
 
     data_binder(const std::string& n, const entity_type* e, data_validator<value_type> v)
         : name(n), elt(e), validate(v)
-    { if (!validate) { std::cerr << "INVALID VALIDATOR " << __FILE__ << ':' << __LINE__ << std::endl; } }
+    { if (!validate) { X2C_ERR("Invalid validator " << __FILE__ << ':' << __LINE__ << std::endl); } }
 
     template <typename T>
     EvalType* install(T* container) const
@@ -96,11 +96,11 @@ struct data_binder<StrucType, FieldType StrucType::*, Element<FieldType>> {
 
     data_binder(const std::string& n, FieldType StrucType::* t, const entity_type* e, data_validator<value_type> v)
         : name(n), target(t), elt(e), validate(v)
-    { if (!validate) { std::cerr << "INVALID VALIDATOR " << __FILE__ << ':' << __LINE__ << std::endl; } }
+    { if (!validate) { X2C_ERR("Invalid validator " << __FILE__ << ':' << __LINE__ << std::endl); } }
 
     data_binder(const data_binder<StrucType, FieldType StrucType::*, Element<StrucType>>& d)
         : name(d.name), target(d.target), elt(d.elt), validate(d.validate)
-    { if (!validate) { std::cerr << "INVALID VALIDATOR " << __FILE__ << ':' << __LINE__ << std::endl; } }
+    { if (!validate) { X2C_ERR("Invalid validator " << __FILE__ << ':' << __LINE__ << std::endl); } }
 
     FieldType* install(StrucType* container) const
     {
@@ -121,7 +121,7 @@ struct data_binder<StrucType, FieldType StrucType::*, Element<FieldType>> {
 
     void rollback(FieldType** ptr) const
     {
-        /*std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << ptr << ' ' << (*ptr) << std::endl;*/
+        /*X2C_ERR("ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << PTR << ' ' << (*PTR) << STD::ENDL);*/
         (void)ptr;
     }
 };
@@ -141,23 +141,23 @@ struct data_binder<StrucType, FieldType* StrucType::*, Element<FieldType>> {
 
     data_binder(const std::string& n, FieldType* StrucType::* t, const entity_type* e, data_validator<value_type> v)
         : name(n), target(t), elt(e), validate(v)
-    { if (!validate) { std::cerr << "INVALID VALIDATOR " << __FILE__ << ':' << __LINE__ << std::endl; } }
+    { if (!validate) { X2C_ERR("Invalid validator " << __FILE__ << ':' << __LINE__ << std::endl); } }
 
     data_binder(const data_binder<StrucType, FieldType* StrucType::*, Element<StrucType>>& d)
         : name(d.name), target(d.target), elt(d.elt), validate(d.validate)
-    { if (!validate) { std::cerr << "INVALID VALIDATOR " << __FILE__ << ':' << __LINE__ << std::endl; } }
+    { if (!validate) { X2C_ERR("Invalid validator " << __FILE__ << ':' << __LINE__ << std::endl); } }
 
     FieldType* install(StrucType* container) const
     {
         DEBUG;
-        debug_log << "container=" << container << " target=" << container->*target << debug_endl;
+        DEBUG_LOG("container=" << container << " target=" << container->*target << std::endl);
         return new FieldType();
     }
 
     bool after(StrucType* container, FieldType* data) const
     {
         DEBUG;
-        debug_log << "container=" << container << " \"" << elt->name << "\" target=" << container->*target << debug_endl;
+        DEBUG_LOG("container=" << container << " \"" << elt->name << "\" target=" << container->*target << std::endl);
         if (validate(data)) {
             container->*target = data;
             return true;
@@ -169,10 +169,10 @@ struct data_binder<StrucType, FieldType* StrucType::*, Element<FieldType>> {
 
     void rollback(FieldType** ptr) const
     {
-        /*std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << ptr << ' ' << (*ptr) << std::endl;*/
+        /*X2C_ERR("ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << PTR << ' ' << (*PTR) << STD::ENDL);*/
         delete *ptr;
         *ptr = nullptr;
-        /*std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << ptr << ' ' << (*ptr) << std::endl;*/
+        /*X2C_ERR("ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << PTR << ' ' << (*PTR) << STD::ENDL);*/
     }
 };
 
@@ -191,11 +191,11 @@ struct data_binder<EvalType, Manipulator, Element<Manipulator>> {
 
     data_binder(const std::string& n, const entity_type* e, data_validator<value_type> v)
         : name(n), elt(e), validate(v)
-    { if (!validate) { std::cerr << "INVALID VALIDATOR " << __FILE__ << ':' << __LINE__ << std::endl; } }
+    { if (!validate) { X2C_ERR("Invalid validator " << __FILE__ << ':' << __LINE__ << std::endl); } }
 
     data_binder(const data_binder<EvalType, Manipulator, Element<Manipulator>>& d)
         : name(d.name), elt(d.elt), validate(d.validate)
-    { if (!validate) { std::cerr << "INVALID VALIDATOR " << __FILE__ << ':' << __LINE__ << std::endl; } }
+    { if (!validate) { X2C_ERR("Invalid validator " << __FILE__ << ':' << __LINE__ << std::endl); } }
 
     Manipulator* install(EvalType* container) const
     {
@@ -207,7 +207,7 @@ struct data_binder<EvalType, Manipulator, Element<Manipulator>> {
     {
         DEBUG;
         delete_on_scope_exit<Manipulator> _ = { data };
-        debug_log << "container=" << container << " \"" << elt->name << "\" manip=" << data << debug_endl;
+        DEBUG_LOG("container=" << container << " \"" << elt->name << "\" manip=" << data << std::endl);
         if (validate(data)) {
             (*data)(*container);
             return true;
@@ -218,10 +218,10 @@ struct data_binder<EvalType, Manipulator, Element<Manipulator>> {
 
     void rollback(Manipulator** ptr) const
     {
-        /*std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << ptr << ' ' << (*ptr) << std::endl;*/
+        /*X2C_ERR("ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << PTR << ' ' << (*PTR) << STD::ENDL);*/
         delete *ptr;
         *ptr = nullptr;
-        /*std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << ptr << ' ' << (*ptr) << std::endl;*/
+        /*X2C_ERR("ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << PTR << ' ' << (*PTR) << STD::ENDL);*/
     }
 };
 
@@ -240,11 +240,11 @@ struct data_binder<EvalType, EvalType, Element<EvalType>> {
 
     data_binder(const std::string& n, const entity_type* e, data_validator<value_type> v)
         : name(n), elt(e), validate(v)
-    { if (!validate) { std::cerr << "INVALID VALIDATOR " << __FILE__ << ':' << __LINE__ << std::endl; } }
+    { if (!validate) { X2C_ERR("Invalid validator " << __FILE__ << ':' << __LINE__ << std::endl); } }
 
     data_binder(const data_binder<EvalType, EvalType, Element<EvalType>>& d)
         : name(d.name), elt(d.elt), validate(d.validate)
-    { if (!validate) { std::cerr << "INVALID VALIDATOR " << __FILE__ << ':' << __LINE__ << std::endl; } }
+    { if (!validate) { X2C_ERR("Invalid validator " << __FILE__ << ':' << __LINE__ << std::endl); } }
 
     EvalType* install(EvalType* container) const
     {
@@ -259,7 +259,7 @@ struct data_binder<EvalType, EvalType, Element<EvalType>> {
 
     void rollback(EvalType** ptr) const
     {
-        /*std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << ptr << ' ' << (*ptr) << std::endl;*/
+        /*X2C_ERR("ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << PTR << ' ' << (*PTR) << STD::ENDL);*/
         (void)ptr;
     }
 };
@@ -276,11 +276,11 @@ struct data_binder<EvalType, EvalType, std::string> {
 
     data_binder(const std::string& n)
         : name(n), validate([] (value_type*) { return true; })
-    { if (!validate) { std::cerr << "INVALID VALIDATOR " << __FILE__ << ':' << __LINE__ << std::endl; } }
+    { if (!validate) { X2C_ERR("Invalid validator " << __FILE__ << ':' << __LINE__ << std::endl); } }
 
     data_binder(const data_binder<EvalType, EvalType, std::string>& d)
         : name(d.name), validate(d.validate)
-    { if (!validate) { std::cerr << "INVALID VALIDATOR " << __FILE__ << ':' << __LINE__ << std::endl; } }
+    { if (!validate) { X2C_ERR("Invalid validator " << __FILE__ << ':' << __LINE__ << std::endl); } }
 
     EvalType* install(EvalType* container) const
     {
@@ -297,13 +297,13 @@ struct data_binder<EvalType, EvalType, std::string> {
             return true;
         }
         return false;
-        /*debug_log << "converted => " << (*container) << debug_endl;*/
+        /*DEBUG_LOG("converted => " << (*container) << std::endl);*/
         /*return validate(container);*/
     }
 
     void rollback(EvalType** ptr) const
     {
-        /*std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << ptr << ' ' << (*ptr) << std::endl;*/
+        /*X2C_ERR("ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << PTR << ' ' << (*PTR) << STD::ENDL);*/
         (void)ptr;
     }
 };
@@ -322,15 +322,15 @@ struct data_binder<typename attr_func<EvalType>::func_type, EvalType, std::strin
     data_binder(const std::string& n, func_type f)
         : name(n), validate([] (value_type*) { return true; }), transformer(f)
     {
-        if (!validate) { std::cerr << "INVALID VALIDATOR " << __FILE__ << ':' << __LINE__ << std::endl; }
-        if (!transformer) { std::cerr << "INVALID TRANSFORMER " << __FILE__ << ':' << __LINE__ << std::endl; }
+        if (!validate) { X2C_ERR("Invalid validator " << __FILE__ << ':' << __LINE__ << std::endl); }
+        if (!transformer) { X2C_ERR("Invalid transformer " << __FILE__ << ':' << __LINE__ << std::endl); }
     }
 
     data_binder(const data_binder<typename attr_func<EvalType>::func_type, EvalType, std::string>& d)
         : name(d.name), validate(d.validate), transformer(d.transformer)
     {
-        if (!validate) { std::cerr << "INVALID VALIDATOR " << __FILE__ << ':' << __LINE__ << std::endl; }
-        if (!transformer) { std::cerr << "INVALID TRANSFORMER " << __FILE__ << ':' << __LINE__ << std::endl; }
+        if (!validate) { X2C_ERR("Invalid validator " << __FILE__ << ':' << __LINE__ << std::endl); }
+        if (!transformer) { X2C_ERR("Invalid transformer " << __FILE__ << ':' << __LINE__ << std::endl); }
     }
 
     EvalType* install(EvalType* container) const
@@ -348,13 +348,13 @@ struct data_binder<typename attr_func<EvalType>::func_type, EvalType, std::strin
             return true;
         }
         return false;
-        /*debug_log << "converted => " << (*container) << debug_endl;*/
+        /*DEBUG_LOG("converted => " << (*container) << std::endl);*/
         /*return validate(container);*/
     }
 
     void rollback(EvalType** ptr) const
     {
-        /*std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << ptr << ' ' << (*ptr) << std::endl;*/
+        /*X2C_ERR("ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << PTR << ' ' << (*PTR) << STD::ENDL);*/
         (void)ptr;
     }
 };
@@ -373,7 +373,7 @@ struct data_binder<ignore, EvalType, std::string> {
 
     data_binder(const std::string& n, data_validator<value_type> v)
         : name(n), validate(v)
-    { if (!validate) { std::cerr << "INVALID VALIDATOR " << __FILE__ << ':' << __LINE__ << std::endl; } }
+    { if (!validate) { X2C_ERR("Invalid validator " << __FILE__ << ':' << __LINE__ << std::endl); } }
 
     template <typename T>
     EvalType* install(T* container) const
@@ -407,11 +407,11 @@ struct data_binder<StrucType, FieldType StrucType::*, std::string> {
 
     data_binder(const std::string& n, FieldType StrucType::* f, data_validator<value_type> v)
         : name(n), field(f), validate(v)
-    { if (!validate) { std::cerr << "INVALID VALIDATOR " << __FILE__ << ':' << __LINE__ << std::endl; } }
+    { if (!validate) { X2C_ERR("Invalid validator " << __FILE__ << ':' << __LINE__ << std::endl); } }
 
     data_binder(const data_binder<StrucType, FieldType StrucType::*, std::string>& d)
         : name(d.name), field(d.field), validate(d.validate)
-    { if (!validate) { std::cerr << "INVALID VALIDATOR " << __FILE__ << ':' << __LINE__ << std::endl; } }
+    { if (!validate) { X2C_ERR("Invalid validator " << __FILE__ << ':' << __LINE__ << std::endl); } }
 
     FieldType* install(StrucType* container) const
     {
@@ -429,13 +429,13 @@ struct data_binder<StrucType, FieldType StrucType::*, std::string> {
             return true;
         }
         return false;
-        /*debug_log << "converted => " << (*ptr) << debug_endl;*/
+        /*DEBUG_LOG("converted => " << (*ptr) << std::endl);*/
         /*return validate(ptr);;*/
     }
 
     void rollback(FieldType** ptr) const
     {
-        /*std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << ptr << ' ' << (*ptr) << std::endl;*/
+        /*X2C_ERR("ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << PTR << ' ' << (*PTR) << STD::ENDL);*/
         *ptr = NULL;
     }
 };
@@ -455,11 +455,11 @@ struct data_binder<StrucType, FieldType StrucType::*, Element<typename unconst_v
 
     data_binder(const std::string& n, FieldType StrucType::* f, const entity_type* e, data_validator<value_type> v)
         : name(n), coll(f), elt(e), validate(v)
-    { if (!validate) { std::cerr << "INVALID VALIDATOR " << __FILE__ << ':' << __LINE__ << std::endl; } }
+    { if (!validate) { X2C_ERR("Invalid validator " << __FILE__ << ':' << __LINE__ << std::endl); } }
 
     data_binder(const data_binder<StrucType, FieldType StrucType::*, std::string>& d)
         : name(d.name), coll(d.field), validate(d.validate)
-    { if (!validate) { std::cerr << "INVALID VALIDATOR " << __FILE__ << ':' << __LINE__ << std::endl; } }
+    { if (!validate) { X2C_ERR("Invalid validator " << __FILE__ << ':' << __LINE__ << std::endl); } }
 
     value_type* install(StrucType* container) const
     {
@@ -480,10 +480,10 @@ struct data_binder<StrucType, FieldType StrucType::*, Element<typename unconst_v
 
     void rollback(value_type** ptr) const
     {
-        /*std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << ptr << ' ' << (*ptr) << std::endl;*/
+        /*X2C_ERR("ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << PTR << ' ' << (*PTR) << STD::ENDL);*/
         delete *ptr;
         *ptr = nullptr;
-        /*std::cerr << "ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << ptr << ' ' << (*ptr) << std::endl;*/
+        /*X2C_ERR("ROLLBACK " << __FILE__ << ':' << __LINE__ << ' ' << PTR << ' ' << (*PTR) << STD::ENDL);*/
     }
 };
 
@@ -678,7 +678,7 @@ struct resolve_bindings_class {
         transform(const Element<ManipulatorOrTransient>* e)
         {
             DEBUG;
-            debug_log << e->name << debug_endl;
+            DEBUG_LOG(e->name << std::endl);
             return { e->name, e, &_true_<ManipulatorOrTransient>::_ };
         }
 

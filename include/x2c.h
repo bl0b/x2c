@@ -65,14 +65,14 @@ struct xml_context_impl {
     void error(const std::string& msg) const
     {
         xml_exception e(parser, msg);
-        std::cerr << "Error: " << e.what() << std::endl;
+        X2C_ERR("ERROR: " << e.what() << std::endl);
         throw e;
     }
 
     void error(const char* msg="") const
     {
         xml_exception e(parser, msg);
-        std::cerr << "Error: " << e.what() << std::endl;
+        X2C_ERR("ERROR: " << e.what() << std::endl);
         throw e;
     }
 };
@@ -110,27 +110,27 @@ template <typename EvalType>
                         binder.rollback(&data);
                     }
                 };
-                /*debug_log << "defined after()" << debug_endl;*/
+                /*DEBUG_LOG("defined after()" << std::endl);*/
             } else {
                 data = binder.install((ParentEvalType*)NULL);
                 after = [] () {};
-                /*debug_log << "didn't define after()" << debug_endl;*/
+                /*DEBUG_LOG("didn't define after()" << std::endl);*/
             }
 
             rollback = [binder, this] ()
             {
-                /*std::cerr << this << " ROLLBACK" << std::endl;*/
+                /*X2C_ERR(THIS << " ROLLBACK" << STD::ENDL);*/
                 binder.rollback(&data);
                 after = [] () {};
             };
 
-            /*debug_log << "element address=" << binder.elt << debug_endl;*/
-            /*debug_log << "element iterator() ? " << ((bool)binder.elt->iterator) << debug_endl;*/
+            /*DEBUG_LOG("element address=" << binder.elt << std::endl);*/
+            /*DEBUG_LOG("element iterator() ? " << ((bool)binder.elt->iterator) << std::endl);*/
             iter = binder.elt->iterator();
 
             consume = [this] (const std::string& name)
             {
-                debug_log << "CONSUME " << name << debug_endl;
+                DEBUG_LOG("CONSUME " << name << std::endl);
                 return iter->consume(name, this);
             };
         }
@@ -139,7 +139,7 @@ template <typename EvalType>
         {
             consume_chardata(buffer.str());
             /* FIXME : check iterator state and chardata consumption status */
-            debug_log << "INVOKING AFTER()" << debug_endl;
+            DEBUG_LOG("INVOKING AFTER()" << std::endl);
             after();
         }
 
@@ -161,7 +161,7 @@ template <typename EvalType>
             if (iter->accept(chardata)) {
                 on_element = false;
                 text = value;
-                debug_log << "invoking chardata handler " << text << debug_endl;
+                DEBUG_LOG("invoking chardata handler " << text << std::endl);
                 return consume(chardata);
             } else {
                 return false;
@@ -348,7 +348,7 @@ struct XMLReader {
     }
 
     static void start_hnd(void* userData, const XML_Char* name, const XML_Char** attrs) {
-        debug_log << "start " << name << debug_endl;
+        DEBUG_LOG("start " << name << std::endl);
         xml_context_impl* context = static_cast<xml_context_impl*>(userData);
         if (!context->consume_element(name)) {
             context->error("Failed to consume element");
@@ -359,21 +359,21 @@ struct XMLReader {
         /*static_cast<XMLReader*>(userData)->_start(name, attrs);*/
     }
     static void end_hnd(void* userData, const XML_Char* name) {
-        debug_log << "end " << name << debug_endl;
+        DEBUG_LOG("end " << name << std::endl);
         xml_context_impl* context = static_cast<xml_context_impl*>(userData);
         context->finish();
         delete context;
     }
     /*static void cdata_start_hnd(void* userData) {*/
-        /*std::cout << "CDATA start" << std::endl;*/
+        /*X2C_OUT("CDATA START" << STD::ENDL);*/
         /*(void)userData;*/
     /*}*/
     /*static void cdata_end_hnd(void* userData) {*/
-        /*std::cout << "CDATA end" << std::endl;*/
+        /*X2C_OUT("CDATA END" << STD::ENDL);*/
         /*(void)userData;*/
     /*}*/
     static void chardata_hnd(void* userData, const XML_Char* data, int len) {
-        debug_log << "chardata " << std::string(data, data + len) << debug_endl;
+        DEBUG_LOG("chardata " << std::string(data, data + len) << std::endl);
         static_cast<xml_context_impl*>(userData)->buffer << std::string(data, data + len);
     }
 };
